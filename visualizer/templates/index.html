@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Compilador C - CS3402 UTEC</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>Visualizador de Compilador C a x86-64</h1>
+            <p>Herramienta interactiva para visualizar registros y pila de ejecucion | CS3402 Compiladores - UTEC</p>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left Panel: Code Editor -->
+            <div class="panel editor-panel">
+                <div class="panel-header">
+                    <h2>Codigo Fuente C</h2>
+                    <button id="compileBtn" class="btn btn-primary">Compilar</button>
+                </div>
+                <textarea id="codeEditor" class="code-editor" placeholder="Escriba su codigo C aqui...">int main() {
+    int x = 10;
+    int y = 20;
+    int sum = x + y;
+    printf("%d\n", sum);
+    return 0;
+}</textarea>
+
+                <div class="panel-header" style="margin-top: 20px;">
+                    <h2>Codigo Ensamblador x86-64</h2>
+                    <div class="btn-group">
+                        <button id="loadBtn" class="btn btn-secondary" disabled>Cargar en Simulador</button>
+                    </div>
+                </div>
+                <div id="assemblyCode" class="assembly-view">
+                    <pre class="assembly-pre"></pre>
+                </div>
+            </div>
+
+            <!-- Right Panel: Execution State -->
+            <div class="panel state-panel">
+                <!-- Controls -->
+                <div class="panel-header">
+                    <h2>Controles de Ejecucion</h2>
+                </div>
+                <div class="controls">
+                    <button id="stepBtn" class="btn btn-control" disabled>
+                        Paso Adelante
+                    </button>
+                    <button id="stepBackBtn" class="btn btn-control" disabled>
+                        Paso Atras
+                    </button>
+                    <button id="runBtn" class="btn btn-control" disabled>
+                        Ejecutar Todo
+                    </button>
+                    <button id="resetBtn" class="btn btn-control" disabled>
+                        Reiniciar
+                    </button>
+                </div>
+
+                <!-- Current Instruction -->
+                <div class="current-instruction">
+                    <h3>Instruccion Actual</h3>
+                    <div id="currentInstr" class="instruction-display">
+                        <code>Sin instruccion cargada</code>
+                    </div>
+                    <div class="instruction-counter">
+                        Linea: <span id="instrCounter">0</span> / <span id="totalInstrs">0</span>
+                    </div>
+                </div>
+
+                <!-- Registers -->
+                <div class="panel-header">
+                    <h2>Registros</h2>
+                </div>
+                <div class="registers-grid" id="registersGrid">
+                    <!-- Registers will be populated here -->
+                </div>
+
+                <!-- Flags -->
+                <div class="panel-header">
+                    <h2>Banderas (Flags)</h2>
+                </div>
+                <div class="flags-grid" id="flagsGrid">
+                    <!-- Flags will be populated here -->
+                </div>
+
+                <!-- Stack -->
+                <div class="panel-header">
+                    <h2>Pila (Stack)</h2>
+                </div>
+                <div class="stack-view" id="stackView">
+                    <!-- Stack will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div id="statusBar" class="status-bar">
+            Listo
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+# Archivos compilados
+*.o
+compiler
+program
+
+# Archivos generados
+output.s
+func3.s
+*.aux
+*.log
+*.toc
+*.out
+
+# macOS
+.DS_Store
+
+# Directorios de build
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+
+# Archivos temporales
+*.tmp
+*.swp
