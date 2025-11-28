@@ -16,7 +16,6 @@
 
 \geometry{margin=2.5cm}
 
-% Configuracion de listings para codigo
 \lstset{
     basicstyle=\ttfamily\small,
     breaklines=true,
@@ -45,7 +44,6 @@
     morekeywords={int, long, float, unsigned, void, return, if, else, while, for, typedef}
 }
 
-% Encabezado y pie de pagina
 \pagestyle{fancy}
 \fancyhf{}
 \fancyhead[L]{CS3402 - Compiladores}
@@ -62,7 +60,6 @@
 }
 
 \author{
-    % Agregar nombres de integrantes aqui
     Integrante 1\\
     Integrante 2\\
     Integrante 3
@@ -79,9 +76,7 @@
 \tableofcontents
 \newpage
 
-%==============================================================================
 \section{Introduccion}
-%==============================================================================
 
 El presente documento describe el diseno e implementacion de un compilador que traduce un subconjunto del lenguaje C a codigo ensamblador x86-64. El compilador fue desarrollado en C++ siguiendo una arquitectura modular que comprende las fases clasicas de compilacion: analisis lexico, analisis sintactico, analisis semantico y generacion de codigo.
 
@@ -108,78 +103,37 @@ El compilador soporta las siguientes caracteristicas del lenguaje C:
     \item Alias de tipos mediante typedef
 \end{itemize}
 
-%==============================================================================
 \section{Arquitectura del Compilador}
-%==============================================================================
 
 El compilador sigue una arquitectura de pipeline con cuatro fases principales, cada una implementada como un modulo independiente.
 
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[
-    node distance=0.8cm,
-    block/.style={
-        rectangle,
-        draw=black,
-        line width=1pt,
-        fill=blue!15,
-        text width=2.8cm,
-        text centered,
-        minimum height=1.2cm,
-        font=\small\bfseries,
-        rounded corners=3pt
-    },
-    io/.style={
-        rectangle,
-        draw=black,
-        line width=1pt,
-        fill=green!15,
-        text width=2.8cm,
-        text centered,
-        minimum height=1.2cm,
-        font=\small\bfseries,
-        rounded corners=3pt
-    },
-    arrow/.style={
-        ->,
-        thick,
-        >=stealth,
-        line width=1.2pt
-    },
-    label/.style={
-        font=\footnotesize,
-        fill=white,
-        inner sep=2pt
-    }
+    node distance=0.5cm,
+    block/.style={rectangle, draw=black, line width=1pt, fill=blue!15, text width=2.2cm, text centered, minimum height=1cm, font=\small\bfseries, rounded corners=3pt},
+    io/.style={rectangle, draw=black, line width=1pt, fill=green!15, text width=2.2cm, text centered, minimum height=1cm, font=\small\bfseries, rounded corners=3pt},
+    myarrow/.style={-stealth, thick, line width=1pt}
 ]
-    % Nodos principales en linea horizontal
-    \node[io] (source) {Codigo Fuente\\(.c)};
-    \node[block, right=1.2cm of source] (scanner) {Scanner\\(Lexico)};
-    \node[block, right=1.2cm of scanner] (parser) {Parser\\(Sintactico)};
-    \node[block, right=1.2cm of parser] (semantic) {Semantic\\Analyzer};
-    \node[block, right=1.2cm of semantic] (codegen) {Code\\Generator};
-    \node[io, right=1.2cm of codegen] (output) {Codigo x86-64\\(.s)};
+    \node[io] (source) {Codigo Fuente (.c)};
+    \node[block, right=of source] (scanner) {Scanner};
+    \node[block, right=of scanner] (parser) {Parser};
+    \node[block, right=of parser] (semantic) {Semantic};
+    \node[block, right=of semantic] (codegen) {CodeGen};
+    \node[io, right=of codegen] (output) {Codigo x86-64 (.s)};
 
-    % Flechas con etiquetas
-    \draw[arrow] (source) -- (scanner) node[label, midway, above] {texto};
-    \draw[arrow] (scanner) -- (parser) node[label, midway, above] {tokens};
-    \draw[arrow] (parser) -- (semantic) node[label, midway, above] {AST};
-    \draw[arrow] (semantic) -- (codegen) node[label, midway, above] {AST};
-    \draw[arrow] (codegen) -- (output) node[label, midway, above] {asm};
-
-    % Caja de fondo para las fases del compilador
-    \begin{scope}[on background layer]
-        \node[draw=gray, dashed, rounded corners=5pt, fill=gray!5,
-              fit=(scanner)(parser)(semantic)(codegen),
-              inner sep=10pt, label={[font=\small]above:Fases del Compilador}] {};
-    \end{scope}
+    \draw[myarrow] (source) -- (scanner);
+    \draw[myarrow] (scanner) -- (parser);
+    \draw[myarrow] (parser) -- (semantic);
+    \draw[myarrow] (semantic) -- (codegen);
+    \draw[myarrow] (codegen) -- (output);
 \end{tikzpicture}
 \caption{Pipeline del compilador}
 \end{figure}
 
 \subsection{Estructura de Archivos}
 
-\begin{lstlisting}[style=cpp, caption=Estructura del proyecto]
+\begin{lstlisting}[caption=Estructura del proyecto]
 Final/
 |-- src/
 |   |-- main.cpp          # Punto de entrada
@@ -201,9 +155,7 @@ Final/
 |-- visualizer/           # Bonus: visualizador web
 \end{lstlisting}
 
-%==============================================================================
 \section{Analisis Lexico (Scanner)}
-%==============================================================================
 
 El analizador lexico convierte el codigo fuente en una secuencia de tokens. Esta implementado en la clase \texttt{Scanner} utilizando un enfoque de analisis caracter por caracter.
 
@@ -249,7 +201,6 @@ Palabras clave & int, long, float, unsigned, void & \texttt{int x;} \\
 Literales & NUM, FLOAT\_LIT, STRING\_LIT & \texttt{42}, \texttt{3.14}, \texttt{"hola"} \\
 Identificadores & ID & \texttt{variable}, \texttt{funcion} \\
 Operadores & +, -, *, /, \%, ==, !=, <, >, <=, >= & \texttt{a + b} \\
-           & \&\&, ||, !, ?: & \texttt{a \&\& b} \\
 Delimitadores & (, ), \{, \}, [, ], ;, , & \texttt{func(a, b)} \\
 \bottomrule
 \end{tabular}
@@ -281,21 +232,12 @@ Token Scanner::scanNumber() {
         }
     }
 
-    // Detectar sufijos de tipo (u, U, L, l, f, F)
-    if (current == 'u' || current == 'U') {
-        isUnsigned = true;
-        advance();
-    }
-    // ...
-
     return Token(isFloat ? TokenType::FLOAT_LIT
                         : TokenType::NUM, num);
 }
 \end{lstlisting}
 
-%==============================================================================
 \section{Analisis Sintactico (Parser)}
-%==============================================================================
 
 El analizador sintactico implementa un parser recursivo descendente que construye un Arbol de Sintaxis Abstracta (AST).
 
@@ -320,7 +262,6 @@ private:
     std::unique_ptr<Expr> parseExpression();
     std::unique_ptr<Expr> parseTernary();
     std::unique_ptr<Expr> parseLogicalOr();
-    // ... mas niveles de precedencia
 
 public:
     std::unique_ptr<Program> parse();
@@ -334,75 +275,42 @@ El AST utiliza el patron Visitor para permitir multiples recorridos:
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[
-    node distance=0.6cm and 0.4cm,
-    base/.style={
-        rectangle,
-        draw=black,
-        line width=0.8pt,
-        minimum height=0.8cm,
-        text centered,
-        font=\footnotesize\ttfamily,
-        rounded corners=2pt
-    },
-    root/.style={base, fill=red!20, text width=2cm, font=\footnotesize\ttfamily\bfseries},
-    abstract/.style={base, fill=orange!20, text width=1.8cm},
-    concrete/.style={base, fill=blue!15, text width=2cm},
-    arrow/.style={->, thick, >=stealth}
+    node distance=0.5cm,
+    base/.style={rectangle, draw=black, line width=0.8pt, minimum height=0.7cm, text centered, font=\footnotesize\ttfamily, rounded corners=2pt},
+    root/.style={base, fill=red!20, text width=1.8cm},
+    abst/.style={base, fill=orange!20, text width=1.5cm},
+    leaf/.style={base, fill=blue!15, text width=1.8cm},
+    myarrow/.style={-stealth, thick}
 ]
-    % Nodo raiz
     \node[root] (node) {ASTNode};
 
-    % Nivel 1: Expr y Stmt
-    \node[abstract, below left=1cm and 2cm of node] (expr) {Expr};
-    \node[abstract, below right=1cm and 2cm of node] (stmt) {Stmt};
+    \node[abst, below left=0.8cm and 1.5cm of node] (expr) {Expr};
+    \node[abst, below right=0.8cm and 1.5cm of node] (stmt) {Stmt};
 
-    % Nivel 2: Expresiones
-    \node[concrete, below left=0.8cm and 1cm of expr] (binary) {BinaryExpr};
-    \node[concrete, below=0.8cm of expr] (unary) {UnaryExpr};
-    \node[concrete, below right=0.8cm and 1cm of expr] (ternary) {TernaryExpr};
+    \node[leaf, below left=0.6cm and 0.3cm of expr] (binary) {BinaryExpr};
+    \node[leaf, below=0.6cm of expr] (unary) {UnaryExpr};
+    \node[leaf, below right=0.6cm and 0.3cm of expr] (ternary) {TernaryExpr};
+    \node[leaf, below=0.5cm of binary] (literal) {LiteralExpr};
+    \node[leaf, below=0.5cm of ternary] (call) {CallExpr};
 
-    % Nivel 3: Mas expresiones
-    \node[concrete, below=0.6cm of binary] (literal) {LiteralExpr};
-    \node[concrete, below=0.6cm of unary] (ident) {IdentifierExpr};
-    \node[concrete, below=0.6cm of ternary] (call) {CallExpr};
+    \node[leaf, below left=0.6cm and 0.3cm of stmt] (vardecl) {VarDeclStmt};
+    \node[leaf, below=0.6cm of stmt] (ifstmt) {IfStmt};
+    \node[leaf, below right=0.6cm and 0.3cm of stmt] (whilestmt) {WhileStmt};
+    \node[leaf, below=0.5cm of vardecl] (forstmt) {ForStmt};
+    \node[leaf, below=0.5cm of whilestmt] (block) {BlockStmt};
 
-    % Nivel 2: Statements
-    \node[concrete, below left=0.8cm and 0.8cm of stmt] (vardecl) {VarDeclStmt};
-    \node[concrete, below=0.8cm of stmt] (ifstmt) {IfStmt};
-    \node[concrete, below right=0.8cm and 0.8cm of stmt] (whilestmt) {WhileStmt};
-
-    % Nivel 3: Mas statements
-    \node[concrete, below=0.6cm of vardecl] (assign) {AssignStmt};
-    \node[concrete, below=0.6cm of ifstmt] (forstmt) {ForStmt};
-    \node[concrete, below=0.6cm of whilestmt] (block) {BlockStmt};
-    \node[concrete, below=0.6cm of block] (ret) {ReturnStmt};
-
-    % Flechas de herencia (hijo -> padre)
-    \draw[arrow] (expr) -- (node);
-    \draw[arrow] (stmt) -- (node);
-
-    \draw[arrow] (binary) -- (expr);
-    \draw[arrow] (unary) -- (expr);
-    \draw[arrow] (ternary) -- (expr);
-    \draw[arrow] (literal) -- (expr);
-    \draw[arrow] (ident) -- (expr);
-    \draw[arrow] (call) -- (expr);
-
-    \draw[arrow] (vardecl) -- (stmt);
-    \draw[arrow] (ifstmt) -- (stmt);
-    \draw[arrow] (whilestmt) -- (stmt);
-    \draw[arrow] (assign) -- (stmt);
-    \draw[arrow] (forstmt) -- (stmt);
-    \draw[arrow] (block) -- (stmt);
-    \draw[arrow] (ret) -- (stmt);
-
-    % Leyenda
-    \node[root, below=3.5cm of node, xshift=-4cm, minimum width=1.5cm] (leg1) {};
-    \node[right=0.1cm of leg1, font=\footnotesize] {Clase base};
-    \node[abstract, right=2cm of leg1, minimum width=1.5cm] (leg2) {};
-    \node[right=0.1cm of leg2, font=\footnotesize] {Abstracta};
-    \node[concrete, right=2cm of leg2, minimum width=1.5cm] (leg3) {};
-    \node[right=0.1cm of leg3, font=\footnotesize] {Concreta};
+    \draw[myarrow] (expr) -- (node);
+    \draw[myarrow] (stmt) -- (node);
+    \draw[myarrow] (binary) -- (expr);
+    \draw[myarrow] (unary) -- (expr);
+    \draw[myarrow] (ternary) -- (expr);
+    \draw[myarrow] (literal) -- (expr);
+    \draw[myarrow] (call) -- (expr);
+    \draw[myarrow] (vardecl) -- (stmt);
+    \draw[myarrow] (ifstmt) -- (stmt);
+    \draw[myarrow] (whilestmt) -- (stmt);
+    \draw[myarrow] (forstmt) -- (stmt);
+    \draw[myarrow] (block) -- (stmt);
 \end{tikzpicture}
 \caption{Jerarquia de clases del AST}
 \end{figure}
@@ -461,9 +369,7 @@ bool Parser::isTypeToken() {
 }
 \end{lstlisting}
 
-%==============================================================================
 \section{Analisis Semantico}
-%==============================================================================
 
 El analizador semantico verifica la correccion del programa mediante el patron Visitor.
 
@@ -488,7 +394,6 @@ public:
     void visit(CallExpr* node) override;
     void visit(VarDeclStmt* node) override;
     void visit(FunctionDecl* node) override;
-    // ... otros visitors
 };
 \end{lstlisting}
 
@@ -548,9 +453,7 @@ public:
 };
 \end{lstlisting}
 
-%==============================================================================
 \section{Generacion de Codigo}
-%==============================================================================
 
 El generador de codigo produce ensamblador x86-64 en sintaxis Intel, siguiendo la convencion de llamadas System V ABI.
 
@@ -578,7 +481,6 @@ public:
     void visit(BinaryExpr* node) override;
     void visit(CallExpr* node) override;
     void visit(IfStmt* node) override;
-    // ... otros visitors
 
     std::string getCode() const;
 };
@@ -608,47 +510,32 @@ xmm0-xmm1 & Operaciones de punto flotante \\
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[
-    cell/.style={
-        rectangle,
-        draw=black,
-        line width=0.8pt,
-        minimum width=5cm,
-        minimum height=0.9cm,
-        font=\small
-    },
+    cell/.style={rectangle, draw=black, line width=0.8pt, minimum width=5cm, minimum height=0.8cm, font=\small},
     high/.style={cell, fill=red!10},
     mid/.style={cell, fill=yellow!15},
     low/.style={cell, fill=blue!10},
-    pointer/.style={->, thick, >=stealth, line width=1pt}
+    myarrow/.style={-stealth, thick, line width=1pt}
 ]
-    % Celdas del stack
     \node[high] (arg) at (0, 0) {Argumentos (arg3, arg2, arg1)};
-    \node[high] (ret) at (0, -0.9) {Direccion de retorno};
-    \node[mid] (rbp) at (0, -1.8) {RBP anterior (saved rbp)};
-    \node[low] (local) at (0, -2.7) {Variables locales};
-    \node[low] (temp) at (0, -3.6) {Espacio temporal};
+    \node[high] (ret) at (0, -0.8) {Direccion de retorno};
+    \node[mid] (rbpnode) at (0, -1.6) {RBP anterior (saved rbp)};
+    \node[low] (local) at (0, -2.4) {Variables locales};
+    \node[low] (temp) at (0, -3.2) {Espacio temporal};
 
-    % Punteros
-    \draw[pointer] (3, -1.8) -- (2.6, -1.8);
-    \node[right] at (3, -1.8) {\texttt{rbp}};
+    \draw[myarrow] (3, -1.6) -- (2.6, -1.6);
+    \node[right] at (3, -1.6) {\texttt{rbp}};
 
-    \draw[pointer] (3, -3.6) -- (2.6, -3.6);
-    \node[right] at (3, -3.6) {\texttt{rsp}};
+    \draw[myarrow] (3, -3.2) -- (2.6, -3.2);
+    \node[right] at (3, -3.2) {\texttt{rsp}};
 
-    % Offsets
     \node[left, font=\footnotesize\ttfamily] at (-2.8, 0) {[rbp+24]};
-    \node[left, font=\footnotesize\ttfamily] at (-2.8, -0.9) {[rbp+8]};
-    \node[left, font=\footnotesize\ttfamily] at (-2.8, -1.8) {[rbp]};
-    \node[left, font=\footnotesize\ttfamily] at (-2.8, -2.7) {[rbp-8]};
-    \node[left, font=\footnotesize\ttfamily] at (-2.8, -3.6) {[rbp-16]};
+    \node[left, font=\footnotesize\ttfamily] at (-2.8, -0.8) {[rbp+8]};
+    \node[left, font=\footnotesize\ttfamily] at (-2.8, -1.6) {[rbp]};
+    \node[left, font=\footnotesize\ttfamily] at (-2.8, -2.4) {[rbp-8]};
+    \node[left, font=\footnotesize\ttfamily] at (-2.8, -3.2) {[rbp-16]};
 
-    % Etiquetas de direcciones
-    \node[above] at (0, 0.6) {\textbf{Direcciones altas}};
-    \node[below] at (0, -4.2) {\textbf{Direcciones bajas}};
-
-    % Flecha de crecimiento
-    \draw[->, thick, dashed] (-4, 0) -- (-4, -3.6);
-    \node[rotate=90, font=\footnotesize] at (-4.4, -1.8) {Crece hacia abajo};
+    \node[above] at (0, 0.5) {\textbf{Direcciones altas}};
+    \node[below] at (0, -3.8) {\textbf{Direcciones bajas}};
 \end{tikzpicture}
 \caption{Estructura del stack frame en x86-64}
 \end{figure}
@@ -703,7 +590,6 @@ void CodeGenerator::visit(BinaryExpr* node) {
         emit("idiv rbx");
         emit("mov rax, rdx"); // Resto en rdx
     }
-    // ... operadores relacionales y logicos
 }
 \end{lstlisting}
 
@@ -773,9 +659,7 @@ void CodeGenerator::visit(WhileStmt* node) {
 }
 \end{lstlisting}
 
-%==============================================================================
 \section{Optimizaciones}
-%==============================================================================
 
 El compilador implementa dos optimizaciones principales aplicadas durante la generacion de codigo.
 
@@ -811,7 +695,6 @@ void CodeGenerator::visit(BinaryExpr* node) {
             return;
         }
     }
-    // ... codigo normal si no se puede optimizar
 }
 \end{lstlisting}
 
@@ -846,7 +729,6 @@ void CodeGenerator::visit(IfStmt* node) {
             return;  // Omitir rama else
         }
     }
-    // ... generacion normal
 }
 \end{lstlisting}
 
@@ -859,9 +741,7 @@ if (0) {
 
 El compilador no genera codigo para el bloque interno.
 
-%==============================================================================
 \section{Extensiones Implementadas}
-%==============================================================================
 
 \subsection{Expresiones Ternarias}
 
@@ -909,9 +789,7 @@ decimal pi = 3.14;
 
 El parser mantiene un mapa \texttt{typeAliases} que asocia nombres de alias con sus tipos base.
 
-%==============================================================================
 \section{Casos de Prueba}
-%==============================================================================
 
 El compilador incluye 18 casos de prueba organizados en cuatro categorias.
 
@@ -996,9 +874,7 @@ test\_opt5.c & Loop optimization & 100 \\
 \end{tabular}
 \end{table}
 
-%==============================================================================
 \section{Ejemplo de Codigo Generado}
-%==============================================================================
 
 \subsection{Codigo Fuente}
 
@@ -1089,9 +965,7 @@ int_fmt: .asciz "%ld\n"
 .STR0: .asciz "%d\n"
 \end{lstlisting}
 
-%==============================================================================
 \section{Instrucciones de Uso}
-%==============================================================================
 
 \subsection{Compilacion del Compilador}
 
@@ -1124,9 +998,7 @@ gcc -no-pie output.s -o program
 ./program
 \end{lstlisting}
 
-%==============================================================================
 \section{Conclusiones}
-%==============================================================================
 
 Se logro implementar exitosamente un compilador funcional que traduce un subconjunto significativo de C a codigo ensamblador x86-64. Los principales logros incluyen:
 
@@ -1152,9 +1024,7 @@ Posibles mejoras para versiones futuras:
     \item Generacion de codigo para otras arquitecturas
 \end{itemize}
 
-%==============================================================================
 \section{Referencias}
-%==============================================================================
 
 \begin{enumerate}
     \item Aho, A. V., Lam, M. S., Sethi, R., \& Ullman, J. D. (2006). \textit{Compilers: Principles, Techniques, and Tools} (2nd ed.). Addison-Wesley.
