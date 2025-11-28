@@ -12,7 +12,7 @@
 \usepackage{float}
 \usepackage{amsmath}
 \usepackage{tikz}
-\usetikzlibrary{shapes,arrows,positioning}
+\usetikzlibrary{shapes,arrows,positioning,calc,fit,backgrounds}
 
 \geometry{margin=2.5cm}
 
@@ -117,22 +117,62 @@ El compilador sigue una arquitectura de pipeline con cuatro fases principales, c
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[
-    node distance=1.5cm,
-    block/.style={rectangle, draw, fill=blue!20, text width=3cm, text centered, minimum height=1cm},
-    arrow/.style={->, thick}
+    node distance=0.8cm,
+    block/.style={
+        rectangle,
+        draw=black,
+        line width=1pt,
+        fill=blue!15,
+        text width=2.8cm,
+        text centered,
+        minimum height=1.2cm,
+        font=\small\bfseries,
+        rounded corners=3pt
+    },
+    io/.style={
+        rectangle,
+        draw=black,
+        line width=1pt,
+        fill=green!15,
+        text width=2.8cm,
+        text centered,
+        minimum height=1.2cm,
+        font=\small\bfseries,
+        rounded corners=3pt
+    },
+    arrow/.style={
+        ->,
+        thick,
+        >=stealth,
+        line width=1.2pt
+    },
+    label/.style={
+        font=\footnotesize,
+        fill=white,
+        inner sep=2pt
+    }
 ]
-    \node[block] (source) {Codigo Fuente\\(.c)};
-    \node[block, right=of source] (scanner) {Scanner\\(Lexico)};
-    \node[block, right=of scanner] (parser) {Parser\\(Sintactico)};
-    \node[block, below=of parser] (semantic) {Semantic\\(Semantico)};
-    \node[block, left=of semantic] (codegen) {CodeGen\\(Generacion)};
-    \node[block, left=of codegen] (output) {Codigo x86-64\\(.s)};
+    % Nodos principales en linea horizontal
+    \node[io] (source) {Codigo Fuente\\(.c)};
+    \node[block, right=1.2cm of source] (scanner) {Scanner\\(Lexico)};
+    \node[block, right=1.2cm of scanner] (parser) {Parser\\(Sintactico)};
+    \node[block, right=1.2cm of parser] (semantic) {Semantic\\Analyzer};
+    \node[block, right=1.2cm of semantic] (codegen) {Code\\Generator};
+    \node[io, right=1.2cm of codegen] (output) {Codigo x86-64\\(.s)};
 
-    \draw[arrow] (source) -- (scanner) node[midway, above] {texto};
-    \draw[arrow] (scanner) -- (parser) node[midway, above] {tokens};
-    \draw[arrow] (parser) -- (semantic) node[midway, right] {AST};
-    \draw[arrow] (semantic) -- (codegen) node[midway, above] {AST+tipos};
-    \draw[arrow] (codegen) -- (output) node[midway, above] {asm};
+    % Flechas con etiquetas
+    \draw[arrow] (source) -- (scanner) node[label, midway, above] {texto};
+    \draw[arrow] (scanner) -- (parser) node[label, midway, above] {tokens};
+    \draw[arrow] (parser) -- (semantic) node[label, midway, above] {AST};
+    \draw[arrow] (semantic) -- (codegen) node[label, midway, above] {AST};
+    \draw[arrow] (codegen) -- (output) node[label, midway, above] {asm};
+
+    % Caja de fondo para las fases del compilador
+    \begin{scope}[on background layer]
+        \node[draw=gray, dashed, rounded corners=5pt, fill=gray!5,
+              fit=(scanner)(parser)(semantic)(codegen),
+              inner sep=10pt, label={[font=\small]above:Fases del Compilador}] {};
+    \end{scope}
 \end{tikzpicture}
 \caption{Pipeline del compilador}
 \end{figure}
@@ -294,43 +334,75 @@ El AST utiliza el patron Visitor para permitir multiples recorridos:
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[
-    node distance=0.8cm,
-    class/.style={rectangle, draw, fill=yellow!20, text width=2.5cm, text centered, minimum height=0.7cm, font=\small},
-    arrow/.style={->, thick}
+    node distance=0.6cm and 0.4cm,
+    base/.style={
+        rectangle,
+        draw=black,
+        line width=0.8pt,
+        minimum height=0.8cm,
+        text centered,
+        font=\footnotesize\ttfamily,
+        rounded corners=2pt
+    },
+    root/.style={base, fill=red!20, text width=2cm, font=\footnotesize\ttfamily\bfseries},
+    abstract/.style={base, fill=orange!20, text width=1.8cm},
+    concrete/.style={base, fill=blue!15, text width=2cm},
+    arrow/.style={->, thick, >=stealth}
 ]
-    \node[class] (node) {ASTNode};
+    % Nodo raiz
+    \node[root] (node) {ASTNode};
 
-    \node[class, below left=1cm and 1.5cm of node] (expr) {Expr};
-    \node[class, below right=1cm and 1.5cm of node] (stmt) {Stmt};
+    % Nivel 1: Expr y Stmt
+    \node[abstract, below left=1cm and 2cm of node] (expr) {Expr};
+    \node[abstract, below right=1cm and 2cm of node] (stmt) {Stmt};
 
-    \node[class, below left=0.8cm and 0.5cm of expr] (binary) {BinaryExpr};
-    \node[class, below=0.8cm of expr] (unary) {UnaryExpr};
-    \node[class, below right=0.8cm and 0.5cm of expr] (ternary) {TernaryExpr};
-    \node[class, below=1.8cm of binary] (literal) {LiteralExpr};
-    \node[class, below=1.8cm of unary] (ident) {IdentifierExpr};
-    \node[class, below=1.8cm of ternary] (call) {CallExpr};
+    % Nivel 2: Expresiones
+    \node[concrete, below left=0.8cm and 1cm of expr] (binary) {BinaryExpr};
+    \node[concrete, below=0.8cm of expr] (unary) {UnaryExpr};
+    \node[concrete, below right=0.8cm and 1cm of expr] (ternary) {TernaryExpr};
 
-    \node[class, below left=0.8cm and 0.3cm of stmt] (vardecl) {VarDeclStmt};
-    \node[class, below=0.8cm of stmt] (ifstmt) {IfStmt};
-    \node[class, below right=0.8cm and 0.3cm of stmt] (whilestmt) {WhileStmt};
-    \node[class, below=1.8cm of vardecl] (assign) {AssignStmt};
-    \node[class, below=1.8cm of ifstmt] (forstmt) {ForStmt};
-    \node[class, below=1.8cm of whilestmt] (block) {BlockStmt};
+    % Nivel 3: Mas expresiones
+    \node[concrete, below=0.6cm of binary] (literal) {LiteralExpr};
+    \node[concrete, below=0.6cm of unary] (ident) {IdentifierExpr};
+    \node[concrete, below=0.6cm of ternary] (call) {CallExpr};
 
+    % Nivel 2: Statements
+    \node[concrete, below left=0.8cm and 0.8cm of stmt] (vardecl) {VarDeclStmt};
+    \node[concrete, below=0.8cm of stmt] (ifstmt) {IfStmt};
+    \node[concrete, below right=0.8cm and 0.8cm of stmt] (whilestmt) {WhileStmt};
+
+    % Nivel 3: Mas statements
+    \node[concrete, below=0.6cm of vardecl] (assign) {AssignStmt};
+    \node[concrete, below=0.6cm of ifstmt] (forstmt) {ForStmt};
+    \node[concrete, below=0.6cm of whilestmt] (block) {BlockStmt};
+    \node[concrete, below=0.6cm of block] (ret) {ReturnStmt};
+
+    % Flechas de herencia (hijo -> padre)
     \draw[arrow] (expr) -- (node);
     \draw[arrow] (stmt) -- (node);
+
     \draw[arrow] (binary) -- (expr);
     \draw[arrow] (unary) -- (expr);
     \draw[arrow] (ternary) -- (expr);
     \draw[arrow] (literal) -- (expr);
     \draw[arrow] (ident) -- (expr);
     \draw[arrow] (call) -- (expr);
+
     \draw[arrow] (vardecl) -- (stmt);
     \draw[arrow] (ifstmt) -- (stmt);
     \draw[arrow] (whilestmt) -- (stmt);
     \draw[arrow] (assign) -- (stmt);
     \draw[arrow] (forstmt) -- (stmt);
     \draw[arrow] (block) -- (stmt);
+    \draw[arrow] (ret) -- (stmt);
+
+    % Leyenda
+    \node[root, below=3.5cm of node, xshift=-4cm, minimum width=1.5cm] (leg1) {};
+    \node[right=0.1cm of leg1, font=\footnotesize] {Clase base};
+    \node[abstract, right=2cm of leg1, minimum width=1.5cm] (leg2) {};
+    \node[right=0.1cm of leg2, font=\footnotesize] {Abstracta};
+    \node[concrete, right=2cm of leg2, minimum width=1.5cm] (leg3) {};
+    \node[right=0.1cm of leg3, font=\footnotesize] {Concreta};
 \end{tikzpicture}
 \caption{Jerarquia de clases del AST}
 \end{figure}
@@ -536,21 +608,49 @@ xmm0-xmm1 & Operaciones de punto flotante \\
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[
-    cell/.style={rectangle, draw, minimum width=4cm, minimum height=0.7cm, font=\small}
+    cell/.style={
+        rectangle,
+        draw=black,
+        line width=0.8pt,
+        minimum width=5cm,
+        minimum height=0.9cm,
+        font=\small
+    },
+    high/.style={cell, fill=red!10},
+    mid/.style={cell, fill=yellow!15},
+    low/.style={cell, fill=blue!10},
+    pointer/.style={->, thick, >=stealth, line width=1pt}
 ]
-    \node[cell] at (0, 0) {Argumentos (arg3, arg2, arg1)};
-    \node[cell] at (0, -0.7) {Direccion de retorno};
-    \node[cell] at (0, -1.4) {RBP anterior (saved rbp)};
-    \node[cell] at (0, -2.1) {Variables locales};
-    \node[cell] at (0, -2.8) {Espacio temporal};
+    % Celdas del stack
+    \node[high] (arg) at (0, 0) {Argumentos (arg3, arg2, arg1)};
+    \node[high] (ret) at (0, -0.9) {Direccion de retorno};
+    \node[mid] (rbp) at (0, -1.8) {RBP anterior (saved rbp)};
+    \node[low] (local) at (0, -2.7) {Variables locales};
+    \node[low] (temp) at (0, -3.6) {Espacio temporal};
 
-    \draw[<-] (2.5, -1.4) -- (3.5, -1.4) node[right] {rbp};
-    \draw[<-] (2.5, -2.8) -- (3.5, -2.8) node[right] {rsp};
+    % Punteros
+    \draw[pointer] (3, -1.8) -- (2.6, -1.8);
+    \node[right] at (3, -1.8) {\texttt{rbp}};
 
-    \node at (0, 0.5) {\textbf{Direcciones altas}};
-    \node at (0, -3.5) {\textbf{Direcciones bajas}};
+    \draw[pointer] (3, -3.6) -- (2.6, -3.6);
+    \node[right] at (3, -3.6) {\texttt{rsp}};
+
+    % Offsets
+    \node[left, font=\footnotesize\ttfamily] at (-2.8, 0) {[rbp+24]};
+    \node[left, font=\footnotesize\ttfamily] at (-2.8, -0.9) {[rbp+8]};
+    \node[left, font=\footnotesize\ttfamily] at (-2.8, -1.8) {[rbp]};
+    \node[left, font=\footnotesize\ttfamily] at (-2.8, -2.7) {[rbp-8]};
+    \node[left, font=\footnotesize\ttfamily] at (-2.8, -3.6) {[rbp-16]};
+
+    % Etiquetas de direcciones
+    \node[above] at (0, 0.6) {\textbf{Direcciones altas}};
+    \node[below] at (0, -4.2) {\textbf{Direcciones bajas}};
+
+    % Flecha de crecimiento
+    \draw[->, thick, dashed] (-4, 0) -- (-4, -3.6);
+    \node[rotate=90, font=\footnotesize] at (-4.4, -1.8) {Crece hacia abajo};
 \end{tikzpicture}
-\caption{Estructura del stack frame}
+\caption{Estructura del stack frame en x86-64}
 \end{figure}
 
 \subsection{Generacion de Prologo y Epilogo}
