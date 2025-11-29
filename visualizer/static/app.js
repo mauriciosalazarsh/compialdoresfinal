@@ -23,9 +23,16 @@ const registersGrid = document.getElementById('registersGrid');
 const flagsGrid = document.getElementById('flagsGrid');
 const stackView = document.getElementById('stackView');
 const statusBar = document.getElementById('statusBar');
+const programOutput = document.getElementById('programOutput');
+const clearOutputBtn = document.getElementById('clearOutputBtn');
 
 // Event Listeners
 compileBtn.addEventListener('click', compileCode);
+clearOutputBtn.addEventListener('click', clearOutput);
+
+function clearOutput() {
+    programOutput.textContent = '';
+}
 loadBtn.addEventListener('click', loadAssembly);
 stepBtn.addEventListener('click', stepForward);
 stepBackBtn.addEventListener('click', stepBackward);
@@ -291,6 +298,9 @@ function updateUI(state) {
     // Update stack
     updateStack(state.stack);
 
+    // Update output
+    updateOutput(state.output);
+
     previousState = state;
 }
 
@@ -363,5 +373,14 @@ function updateStack(stack) {
     stackView.innerHTML = html;
 }
 
+// Update Output Display
+function updateOutput(output) {
+    if (!output || output.length === 0) {
+        programOutput.textContent = '';
+        return;
+    }
+    programOutput.textContent = output.join('\n');
+}
+
 // Initialize
-setStatus('Ready. Write your Kotlin code and click "Compile".');
+setStatus('Listo. Escribe tu codigo C y haz clic en "Compilar".');

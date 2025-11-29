@@ -340,6 +340,32 @@ header p {
     color: #333;
 }
 
+.output-view {
+    background: #1a1a2e;
+    border-radius: 4px;
+    padding: 15px;
+    min-height: 80px;
+    max-height: 150px;
+    overflow-y: auto;
+    border: 1px solid #333;
+    margin-bottom: 10px;
+}
+
+.output-view pre {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 14px;
+    color: #00ff00;
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.output-view pre:empty::before {
+    content: "Sin salida todavia...";
+    color: #666;
+    font-style: italic;
+}
+
 .status-bar {
     background: #1a237e;
     color: white;

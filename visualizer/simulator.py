@@ -51,6 +51,9 @@ class X86Simulator:
         # Variables mapping (address -> name)
         self.variables = {}
 
+        # Program output (captured from printf calls)
+        self.output = []
+
     def load_assembly(self, assembly_code: str):
         """Load assembly code and parse it"""
         lines = assembly_code.strip().split('\n')
@@ -94,7 +97,8 @@ class X86Simulator:
             self.instructions.append(line)
             instruction_index += 1
 
-        self.current_instruction = 0
+        # Start at main if it exists, otherwise start at 0
+        self.current_instruction = self.labels.get('main', 0)
 
     def save_state(self):
         """Save current state to history"""
@@ -105,7 +109,8 @@ class X86Simulator:
             'stack': self.stack.copy(),
             'memory': self.memory.copy(),
             'current_instruction': self.current_instruction,
-            'call_stack': self.call_stack.copy()
+            'call_stack': self.call_stack.copy(),
+            'output': self.output.copy()
         }
         self.history.append(state)
 
@@ -122,7 +127,21 @@ class X86Simulator:
         self.memory = state['memory']
         self.current_instruction = state['current_instruction']
         self.call_stack = state['call_stack']
+        self.output = state['output']
         return True
+
+    def get_register_64(self, reg: str) -> str:
+        """Convert 32-bit register name to 64-bit equivalent"""
+        reg32_to_64 = {
+            'eax': 'rax', 'ebx': 'rbx', 'ecx': 'rcx', 'edx': 'rdx',
+            'esi': 'rsi', 'edi': 'rdi', 'ebp': 'rbp', 'esp': 'rsp',
+            'r8d': 'r8', 'r9d': 'r9', 'r10d': 'r10', 'r11d': 'r11',
+            'r12d': 'r12', 'r13d': 'r13', 'r14d': 'r14', 'r15d': 'r15',
+            # 8-bit registers
+            'al': 'rax', 'bl': 'rbx', 'cl': 'rcx', 'dl': 'rdx',
+            'sil': 'rsi', 'dil': 'rdi',
+        }
+        return reg32_to_64.get(reg, reg)
 
     def get_value(self, operand: str) -> int:
         """Get value from operand (register, memory, or immediate)"""
@@ -132,7 +151,12 @@ class X86Simulator:
         if operand.isdigit() or (operand.startswith('-') and operand[1:].isdigit()):
             return int(operand)
 
-        # Register
+        # Register (handle 32-bit and 64-bit)
+        reg64 = self.get_register_64(operand)
+        if reg64 in self.registers:
+            return self.registers[reg64]
+
+        # Original check for direct register name
         if operand in self.registers:
             return self.registers[operand]
 
@@ -141,7 +165,8 @@ class X86Simulator:
             match = re.match(r'\[(\w+)\s*([+-])\s*(\d+)\]', operand)
             if match:
                 reg, op, offset = match.groups()
-                addr = self.registers.get(reg, 0)
+                reg64 = self.get_register_64(reg)
+                addr = self.registers.get(reg64, 0)
                 offset_val = int(offset)
                 if op == '-':
                     addr -= offset_val
@@ -153,7 +178,8 @@ class X86Simulator:
             match = re.match(r'\[(\w+)\]', operand)
             if match:
                 reg = match.group(1)
-                addr = self.registers.get(reg, 0)
+                reg64 = self.get_register_64(reg)
+                addr = self.registers.get(reg64, 0)
                 return self.stack.get(addr, 0)
 
         # Label reference
@@ -166,7 +192,16 @@ class X86Simulator:
         """Set value to operand (register or memory)"""
         operand = operand.strip()
 
-        # Register
+        # Register (handle 32-bit and 64-bit)
+        reg64 = self.get_register_64(operand)
+        if reg64 in self.registers:
+            # For 32-bit registers, zero-extend to 64-bit
+            if operand != reg64:
+                value = value & 0xFFFFFFFF
+            self.registers[reg64] = value & 0xFFFFFFFFFFFFFFFF
+            return
+
+        # Original check for direct register name
         if operand in self.registers:
             self.registers[operand] = value & 0xFFFFFFFFFFFFFFFF  # 64-bit mask
             return
@@ -176,7 +211,8 @@ class X86Simulator:
             match = re.match(r'\[(\w+)\s*([+-])\s*(\d+)\]', operand)
             if match:
                 reg, op, offset = match.groups()
-                addr = self.registers.get(reg, 0)
+                reg64 = self.get_register_64(reg)
+                addr = self.registers.get(reg64, 0)
                 offset_val = int(offset)
                 if op == '-':
                     addr -= offset_val
@@ -189,7 +225,8 @@ class X86Simulator:
             match = re.match(r'\[(\w+)\]', operand)
             if match:
                 reg = match.group(1)
-                addr = self.registers.get(reg, 0)
+                reg64 = self.get_register_64(reg)
+                addr = self.registers.get(reg64, 0)
                 self.stack[addr] = value
                 return
 
@@ -309,6 +346,18 @@ class X86Simulator:
             self.stack[self.registers['rsp']] = self.current_instruction + 1
             self.call_stack.append(label)
 
+            # Capture printf output
+            if label == 'printf':
+                # rdi = format string, rsi = first arg (for %d)
+                value = self.registers.get('rsi', 0)
+                # Handle signed 64-bit values (convert from unsigned representation)
+                if value > 0x7FFFFFFFFFFFFFFF:
+                    value = value - 0x10000000000000000
+                # Also handle 32-bit signed values
+                elif value > 0x7FFFFFFF and value <= 0xFFFFFFFF:
+                    value = value - 0x100000000
+                self.output.append(str(value))
+
             if label in self.labels:
                 self.current_instruction = self.labels[label] - 1
 
@@ -327,18 +376,26 @@ class X86Simulator:
         elif opcode == 'lea':
             dest = operands[0]
             src = operands[1]
-            # Simplified - just load a fake address
+            # Handle lea with label reference like [.STR0] or [int_fmt]
             if '[' in src:
-                match = re.match(r'\[(\w+)\s*([+-])\s*(\d+)\]', src)
-                if match:
-                    reg, op, offset = match.groups()
-                    addr = self.registers.get(reg, 0)
-                    offset_val = int(offset)
-                    if op == '-':
-                        addr -= offset_val
-                    else:
-                        addr += offset_val
-                    self.set_value(dest, addr)
+                # Check for label reference [.LABEL] or [label]
+                label_match = re.match(r'\[\.?(\w+)\]', src)
+                if label_match:
+                    # Just set a placeholder address for string labels
+                    self.set_value(dest, 0x1000)  # Fake address for strings
+                else:
+                    # Handle [reg +/- offset]
+                    match = re.match(r'\[(\w+)\s*([+-])\s*(\d+)\]', src)
+                    if match:
+                        reg, op, offset = match.groups()
+                        reg64 = self.get_register_64(reg)
+                        addr = self.registers.get(reg64, 0)
+                        offset_val = int(offset)
+                        if op == '-':
+                            addr -= offset_val
+                        else:
+                            addr += offset_val
+                        self.set_value(dest, addr)
 
         # Set instructions
         elif opcode in ['setl', 'setle', 'setg', 'setge', 'sete', 'setne', 'setz']:
@@ -453,5 +510,6 @@ class X86Simulator:
             'instruction': self.instructions[self.current_instruction] if self.current_instruction < len(self.instructions) else 'END',
             'call_stack': self.call_stack,
             'can_step_back': len(self.history) > 0,
-            'can_step_forward': self.current_instruction < len(self.instructions)
+            'can_step_forward': self.current_instruction < len(self.instructions),
+            'output': self.output
         }

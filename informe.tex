@@ -52,17 +52,16 @@
 
 \title{
     \vspace{-2cm}
-    \Large\textbf{Universidad de Ingenieria y Tecnologia}\\[0.5cm]
-    \large Facultad de Computacion\\[1cm]
+    \Large\textbf{Universidad de Ingeniería y Tecnología}\\[0.5cm]
+    \large Facultad de Computación\\[1cm]
     \Huge\textbf{Compilador de C a x86-64}\\[0.5cm]
     \Large Proyecto Final\\[1cm]
     \large CS3402 - Compiladores
 }
 
 \author{
-    Integrante 1\\
-    Integrante 2\\
-    Integrante 3
+    Salazar Hillenbrand, Mauricio\\
+    Alvarado Vargas, Fabian Martín\
 }
 
 \date{Noviembre 2025}
@@ -76,36 +75,45 @@
 \tableofcontents
 \newpage
 
-\section{Introduccion}
+\section{Introducción}
 
-El presente documento describe el diseno e implementacion de un compilador que traduce un subconjunto del lenguaje C a codigo ensamblador x86-64. El compilador fue desarrollado en C++ siguiendo una arquitectura modular que comprende las fases clasicas de compilacion: analisis lexico, analisis sintactico, analisis semantico y generacion de codigo.
+El presente documento describe el diseño e implementación de un compilador que traduce un subconjunto del lenguaje C a código ensamblador x86-64. El compilador fue desarrollado en C++ siguiendo una arquitectura modular que comprende las fases clásicas de compilación: análisis léxico, análisis sintáctico, análisis semántico y generación de código.
 
 \subsection{Objetivos}
 
 \begin{itemize}
     \item Implementar un compilador funcional para un subconjunto de C
-    \item Generar codigo ensamblador x86-64 ejecutable
-    \item Aplicar tecnicas de optimizacion en tiempo de compilacion
-    \item Soportar tipos de datos numericos adicionales (float, long, unsigned int)
+    \item Generar código ensamblador x86-64 ejecutable
+    \item Aplicar técnicas de optimización en tiempo de compilación
+    \item Soportar tipos de datos numéricos adicionales (float, long, unsigned int)
     \item Implementar extensiones del lenguaje (expresiones ternarias, typedef)
 \end{itemize}
 
 \subsection{Alcance}
 
-El compilador soporta las siguientes caracteristicas del lenguaje C:
+El compilador soporta las siguientes características del lenguaje C:
 
 \begin{itemize}
-    \item Declaracion de variables con tipos int, long, unsigned int y float
-    \item Operaciones aritmeticas, relacionales y logicas
+    \item Declaración de variables con tipos int, long, unsigned int y float
+    \item Operaciones aritméticas, relacionales y lógicas
     \item Estructuras de control: if-else, while, for
-    \item Definicion y llamada de funciones, incluyendo recursion
+    \item Definición y llamada de funciones, incluyendo recursión
     \item Expresiones ternarias (operador ?:)
     \item Alias de tipos mediante typedef
 \end{itemize}
 
+\section{Repositorio del Proyecto}
+
+El código fuente completo, casos de prueba y scripts adicionales se encuentran disponibles en el repositorio oficial del proyecto:
+
+\begin{itemize}
+    \item \textbf{GitHub:} \url{https://github.com/mauriciosalazarsh/compialdoresfinal.git}
+\end{itemize}
+
+
 \section{Arquitectura del Compilador}
 
-El compilador sigue una arquitectura de pipeline con cuatro fases principales, cada una implementada como un modulo independiente.
+El compilador sigue una arquitectura de pipeline con cuatro fases principales, cada una implementada como un módulo independiente.
 
 \begin{figure}[H]
 \centering
@@ -115,12 +123,12 @@ El compilador sigue una arquitectura de pipeline con cuatro fases principales, c
     io/.style={rectangle, draw=black, line width=1pt, fill=green!15, text width=2.2cm, text centered, minimum height=1cm, font=\small\bfseries, rounded corners=3pt},
     myarrow/.style={-stealth, thick, line width=1pt}
 ]
-    \node[io] (source) {Codigo Fuente (.c)};
+    \node[io] (source) {Código Fuente (.c)};
     \node[block, right=of source] (scanner) {Scanner};
     \node[block, right=of scanner] (parser) {Parser};
     \node[block, right=of parser] (semantic) {Semantic};
     \node[block, right=of semantic] (codegen) {CodeGen};
-    \node[io, right=of codegen] (output) {Codigo x86-64 (.s)};
+    \node[io, right=of codegen] (output) {Código x86-64 (.s)};
 
     \draw[myarrow] (source) -- (scanner);
     \draw[myarrow] (scanner) -- (parser);
@@ -137,12 +145,12 @@ El compilador sigue una arquitectura de pipeline con cuatro fases principales, c
 Final/
 |-- src/
 |   |-- main.cpp          # Punto de entrada
-|   |-- scanner.cpp       # Analizador lexico
-|   |-- parser.cpp        # Analizador sintactico
-|   |-- semantic.cpp      # Analizador semantico
-|   |-- codegen.cpp       # Generador de codigo
+|   |-- scanner.cpp       # Analizador léxico
+|   |-- parser.cpp        # Analizador sintáctico
+|   |-- semantic.cpp      # Analizador semántico
+|   |-- codegen.cpp       # Generador de código
 |   |-- ast.cpp           # Nodos del AST
-|   |-- symboltable.cpp   # Tabla de simbolos
+|   |-- symboltable.cpp   # Tabla de símbolos
 |-- include/
 |   |-- scanner.h
 |   |-- parser.h
@@ -155,9 +163,9 @@ Final/
 |-- visualizer/           # Bonus: visualizador web
 \end{lstlisting}
 
-\section{Analisis Lexico (Scanner)}
+\section{Análisis Léxico (Scanner)}
 
-El analizador lexico convierte el codigo fuente en una secuencia de tokens. Esta implementado en la clase \texttt{Scanner} utilizando un enfoque de analisis caracter por caracter.
+El analizador léxico convierte el código fuente en una secuencia de tokens. Está implementado en la clase \texttt{Scanner} utilizando un enfoque de análisis carácter por carácter.
 
 \subsection{Clase Scanner}
 
@@ -199,7 +207,7 @@ Palabras clave & int, long, float, unsigned, void & \texttt{int x;} \\
                & if, else, while, for, return & \texttt{if (x > 0)} \\
                & typedef & \texttt{typedef int entero;} \\
 Literales & NUM, FLOAT\_LIT, STRING\_LIT & \texttt{42}, \texttt{3.14}, \texttt{"hola"} \\
-Identificadores & ID & \texttt{variable}, \texttt{funcion} \\
+Identificadores & ID & \texttt{variable}, \texttt{función} \\
 Operadores & +, -, *, /, \%, ==, !=, <, >, <=, >= & \texttt{a + b} \\
 Delimitadores & (, ), \{, \}, [, ], ;, , & \texttt{func(a, b)} \\
 \bottomrule
@@ -207,11 +215,11 @@ Delimitadores & (, ), \{, \}, [, ], ;, , & \texttt{func(a, b)} \\
 \caption{Tipos de tokens reconocidos}
 \end{table}
 
-\subsection{Manejo de Numeros}
+\subsection{Manejo de Números}
 
-El scanner detecta automaticamente el tipo de literal numerico:
+El scanner detecta automáticamente el tipo de literal numérico:
 
-\begin{lstlisting}[style=cpp, caption=Escaneo de literales numericos]
+\begin{lstlisting}[style=cpp, caption=Escaneo de literales numéricos]
 Token Scanner::scanNumber() {
     std::string num;
     bool isFloat = false;
@@ -237,9 +245,9 @@ Token Scanner::scanNumber() {
 }
 \end{lstlisting}
 
-\section{Analisis Sintactico (Parser)}
+\section{Análisis Sintáctico (Parser)}
 
-El analizador sintactico implementa un parser recursivo descendente que construye un Arbol de Sintaxis Abstracta (AST).
+El analizador sintáctico implementa un parser recursivo descendente que construye un Árbol de Sintaxis Abstracta (AST).
 
 \subsection{Clase Parser}
 
@@ -268,60 +276,79 @@ public:
 };
 \end{lstlisting}
 
-\subsection{Jerarquia del AST}
+\subsection{Jerarquía del AST}
 
-El AST utiliza el patron Visitor para permitir multiples recorridos:
+El AST utiliza el patrón Visitor para permitir múltiples recorridos:
 
 \begin{figure}[H]
 \centering
+% \resizebox{\textwidth}{!}{  <-- Si aun asi queda grande, descomenta esta linea y la llave del final
 \begin{tikzpicture}[
     base/.style={rectangle, draw=black, line width=0.8pt, minimum height=0.6cm, text centered, font=\footnotesize\ttfamily, rounded corners=2pt},
     root/.style={base, fill=red!20, text width=1.8cm},
     abst/.style={base, fill=orange!20, text width=1.3cm},
-    leaf/.style={base, fill=blue!15, text width=1.6cm},
-    myarrow/.style={-stealth, thick}
+    leaf/.style={base, fill=blue!15, text width=2.1cm}, % Mantenemos el ancho para el texto
+    myarrow/.style={-stealth, thick, rounded corners=2pt} 
 ]
-    % nivel 0: raiz
+    % --- NODOS ---
+    
+    % Nivel 0: Raíz
     \node[root] (node) at (0, 0) {ASTNode};
 
-    % nivel 1: clases abstractas
-    \node[abst] (expr) at (-3.5, -1.2) {Expr};
-    \node[abst] (stmt) at (3.5, -1.2) {Stmt};
+    % Nivel 1: Clases abstractas (ACERCADAS: de -5/5 pasamos a -4/4)
+    \node[abst] (expr) at (-4.0, -1.2) {Expr};
+    \node[abst] (stmt) at (4.0, -1.2) {Stmt};
 
-    % nivel 2: subclases de expr (5 nodos)
-    \node[leaf] (binary) at (-5.5, -2.6) {BinaryExpr};
-    \node[leaf] (unary) at (-3.5, -2.6) {UnaryExpr};
-    \node[leaf] (ternary) at (-1.5, -2.6) {TernaryExpr};
-    \node[leaf] (literal) at (-5.5, -3.8) {LiteralExpr};
-    \node[leaf] (call) at (-3.5, -3.8) {CallExpr};
+    % --- LADO IZQUIERDO (Expr) ---
+    % Nivel 2 Fila Superior: (-6.4, -4.0, -1.6)
+    % Se han comprimido las distancias horizontales
+    \node[leaf] (binary) at (-6.4, -2.6) {BinaryExpr};
+    \node[leaf] (unary) at (-4.0, -2.6) {UnaryExpr};
+    \node[leaf] (ternary) at (-1.6, -2.6) {TernaryExpr}; 
+    
+    % Nivel 2 Fila Inferior: Intercalados
+    \node[leaf] (literal) at (-5.2, -4.2) {LiteralExpr};
+    \node[leaf] (call) at (-2.8, -4.2) {CallExpr};
 
-    % nivel 2: subclases de stmt (5 nodos)
-    \node[leaf] (vardecl) at (1.5, -2.6) {VarDeclStmt};
-    \node[leaf] (ifstmt) at (3.5, -2.6) {IfStmt};
-    \node[leaf] (whilestmt) at (5.5, -2.6) {WhileStmt};
-    \node[leaf] (forstmt) at (3.5, -3.8) {ForStmt};
-    \node[leaf] (block) at (5.5, -3.8) {BlockStmt};
 
-    % flechas de herencia
+    % --- LADO DERECHO (Stmt) ---
+    % Nivel 2 Fila Superior: (1.6, 4.0, 6.4)
+    \node[leaf] (vardecl) at (1.6, -2.6) {VarDeclStmt}; 
+    \node[leaf] (ifstmt) at (4.0, -2.6) {IfStmt};
+    \node[leaf] (whilestmt) at (6.4, -2.6) {WhileStmt};
+    
+    % Nivel 2 Fila Inferior: Intercalados
+    \node[leaf] (forstmt) at (2.8, -4.2) {ForStmt};
+    \node[leaf] (block) at (5.2, -4.2) {BlockStmt};
+
+
+    % --- CONEXIONES ---
+
+    % 1. Herencia principal
     \draw[myarrow] (expr) -- (node);
     \draw[myarrow] (stmt) -- (node);
 
-    % expr -> sus hijos (lineas rectas hacia arriba)
-    \draw[myarrow] (binary.north) -- ++(0, 0.4) -| (expr.south);
-    \draw[myarrow] (unary) -- (expr);
-    \draw[myarrow] (ternary.north) -- ++(0, 0.4) -| (expr.south);
-    \draw[myarrow] (literal.north) -- ++(0, 0.3) -| (expr.south west);
-    \draw[myarrow] (call.north) -- ++(0, 0.3) -| (expr.south);
+    % 2. Hijos de EXPR
+    \draw[myarrow] (binary.north) -- ++(0, 0.6) -| (expr.south);
+    \draw[myarrow] (unary.north)  -- ++(0, 0.6) -| (expr.south);
+    \draw[myarrow] (ternary.north)-- ++(0, 0.6) -| (expr.south);
 
-    % stmt -> sus hijos (lineas rectas hacia arriba)
-    \draw[myarrow] (vardecl.north) -- ++(0, 0.4) -| (stmt.south);
-    \draw[myarrow] (ifstmt) -- (stmt);
-    \draw[myarrow] (whilestmt.north) -- ++(0, 0.4) -| (stmt.south);
-    \draw[myarrow] (forstmt.north) -- ++(0, 0.3) -| (stmt.south);
-    \draw[myarrow] (block.north) -- ++(0, 0.3) -| (stmt.south east);
+    \draw[myarrow] (literal.north) -- ++(0, 2.2) -| (expr.south);
+    \draw[myarrow] (call.north)    -- ++(0, 2.2) -| (expr.south);
+
+    % 3. Hijos de STMT
+    \draw[myarrow] (vardecl.north)  -- ++(0, 0.6) -| (stmt.south);
+    \draw[myarrow] (ifstmt.north)   -- ++(0, 0.6) -| (stmt.south);
+    \draw[myarrow] (whilestmt.north)-- ++(0, 0.6) -| (stmt.south);
+
+    \draw[myarrow] (forstmt.north) -- ++(0, 2.2) -| (stmt.south);
+    \draw[myarrow] (block.north)   -- ++(0, 2.2) -| (stmt.south);
+
 \end{tikzpicture}
-\caption{Jerarquia de clases del AST}
+% } % Llave de cierre del resizebox
+\caption{Jerarquía de clases del AST}
 \end{figure}
+
 
 \subsection{Precedencia de Operadores}
 
@@ -331,7 +358,7 @@ La precedencia se implementa mediante funciones de parsing separadas:
 \centering
 \begin{tabular}{clc}
 \toprule
-\textbf{Nivel} & \textbf{Operadores} & \textbf{Funcion} \\
+\textbf{Nivel} & \textbf{Operadores} & \textbf{Función} \\
 \midrule
 1 (menor) & ?: (ternario) & \texttt{parseTernary()} \\
 2 & || & \texttt{parseLogicalOr()} \\
@@ -350,7 +377,7 @@ La precedencia se implementa mediante funciones de parsing separadas:
 
 El parser mantiene un mapa de alias de tipos:
 
-\begin{lstlisting}[style=cpp, caption=Implementacion de typedef]
+\begin{lstlisting}[style=cpp, caption=Implementación de typedef]
 void Parser::parseTypedef() {
     expect(TokenType::TYPEDEF, "Expected 'typedef'");
     DataType baseType = parseType();
@@ -377,13 +404,13 @@ bool Parser::isTypeToken() {
 }
 \end{lstlisting}
 
-\section{Analisis Semantico}
+\section{Análisis Semántico}
 
-El analizador semantico verifica la correccion del programa mediante el patron Visitor.
+El analizador semántico verifica la corrección del programa mediante el patrón Visitor.
 
 \subsection{Clase SemanticAnalyzer}
 
-\begin{lstlisting}[style=cpp, caption=Estructura del analizador semantico]
+\begin{lstlisting}[style=cpp, caption=Estructura del analizador semántico]
 class SemanticAnalyzer : public Visitor {
 private:
     SymbolTable& symbolTable;
@@ -407,9 +434,9 @@ public:
 
 \subsection{Sistema de Tipos}
 
-El compilador soporta cuatro tipos numericos con promocion automatica:
+El compilador soporta cuatro tipos numéricos con promoción automática:
 
-\begin{lstlisting}[style=cpp, caption=Promocion de tipos]
+\begin{lstlisting}[style=cpp, caption=Promoción de tipos]
 DataType SemanticAnalyzer::getCommonType(DataType t1,
                                          DataType t2) {
     if (t1 == t2) return t1;
@@ -431,11 +458,11 @@ DataType SemanticAnalyzer::getCommonType(DataType t1,
 }
 \end{lstlisting}
 
-\subsection{Tabla de Simbolos}
+\subsection{Tabla de Símbolos}
 
-La tabla de simbolos maneja ambitos anidados mediante una pila de scopes:
+La tabla de símbolos maneja ámbitos anidados mediante una pila de scopes:
 
-\begin{lstlisting}[style=cpp, caption=Estructura de la tabla de simbolos]
+\begin{lstlisting}[style=cpp, caption=Estructura de la tabla de símbolos]
 struct Symbol {
     std::string name;
     DataType type;
@@ -461,13 +488,13 @@ public:
 };
 \end{lstlisting}
 
-\section{Generacion de Codigo}
+\section{Generación de Código}
 
-El generador de codigo produce ensamblador x86-64 en sintaxis Intel, siguiendo la convencion de llamadas System V ABI.
+El generador de código produce ensamblador x86-64 en sintaxis Intel, siguiendo la convención de llamadas System V ABI.
 
 \subsection{Clase CodeGenerator}
 
-\begin{lstlisting}[style=cpp, caption=Estructura del generador de codigo]
+\begin{lstlisting}[style=cpp, caption=Estructura del generador de código]
 class CodeGenerator : public Visitor {
 private:
     SymbolTable& symbolTable;
@@ -494,7 +521,7 @@ public:
 };
 \end{lstlisting}
 
-\subsection{Convencion de Llamadas (System V ABI)}
+\subsection{Convención de Llamadas (System V ABI)}
 
 \begin{table}[H]
 \centering
@@ -548,9 +575,9 @@ xmm0-xmm1 & Operaciones de punto flotante \\
 \caption{Estructura del stack frame en x86-64}
 \end{figure}
 
-\subsection{Generacion de Prologo y Epilogo}
+\subsection{Generación de Prólogo y Epílogo}
 
-\begin{lstlisting}[style=cpp, caption=Generacion del prologo de funcion]
+\begin{lstlisting}[style=cpp, caption=Generación del prólogo de función]
 void CodeGenerator::generatePrologue(const std::string& func,
                                      int stackSize) {
     emitLabel(func);
@@ -571,9 +598,9 @@ void CodeGenerator::generateEpilogue() {
 }
 \end{lstlisting}
 
-\subsection{Generacion de Expresiones Binarias}
+\subsection{Generación de Expresiones Binarias}
 
-\begin{lstlisting}[style=cpp, caption=Generacion de operaciones aritmeticas]
+\begin{lstlisting}[style=cpp, caption=Generación de operaciones aritméticas]
 void CodeGenerator::visit(BinaryExpr* node) {
     // Evaluar operandos
     node->left->accept(this);
@@ -583,7 +610,7 @@ void CodeGenerator::visit(BinaryExpr* node) {
     emit("mov rbx, rax");  // Operando derecho en rbx
     emit("pop rax");        // Operando izquierdo en rax
 
-    // Generar operacion
+    // Generar operación
     if (node->op == "+") {
         emit("add rax, rbx");
     } else if (node->op == "-") {
@@ -601,14 +628,14 @@ void CodeGenerator::visit(BinaryExpr* node) {
 }
 \end{lstlisting}
 
-\subsection{Generacion de Expresiones Ternarias}
+\subsection{Generación de Expresiones Ternarias}
 
-\begin{lstlisting}[style=cpp, caption=Generacion del operador ternario]
+\begin{lstlisting}[style=cpp, caption=Generación del operador ternario]
 void CodeGenerator::visit(TernaryExpr* node) {
     std::string falseLabel = newLabel();
     std::string endLabel = newLabel();
 
-    // Evaluar condicion
+    // Evaluar condición
     node->condition->accept(this);
     emit("test rax, rax");
     emit("jz " + falseLabel);
@@ -625,9 +652,9 @@ void CodeGenerator::visit(TernaryExpr* node) {
 }
 \end{lstlisting}
 
-\subsection{Generacion de Estructuras de Control}
+\subsection{Generación de Estructuras de Control}
 
-\begin{lstlisting}[style=cpp, caption=Generacion de if-else]
+\begin{lstlisting}[style=cpp, caption=Generación de if-else]
 void CodeGenerator::visit(IfStmt* node) {
     std::string elseLabel = newLabel();
     std::string endLabel = newLabel();
@@ -650,7 +677,7 @@ void CodeGenerator::visit(IfStmt* node) {
 }
 \end{lstlisting}
 
-\begin{lstlisting}[style=cpp, caption=Generacion de bucle while]
+\begin{lstlisting}[style=cpp, caption=Generación de bucle while]
 void CodeGenerator::visit(WhileStmt* node) {
     std::string startLabel = newLabel();
     std::string endLabel = newLabel();
@@ -669,13 +696,13 @@ void CodeGenerator::visit(WhileStmt* node) {
 
 \section{Optimizaciones}
 
-El compilador implementa dos optimizaciones principales aplicadas durante la generacion de codigo.
+El compilador implementa dos optimizaciones principales aplicadas durante la generación de código.
 
 \subsection{Constant Folding (Plegado de Constantes)}
 
-Esta optimizacion evalua expresiones constantes en tiempo de compilacion:
+Esta optimización evalúa expresiones constantes en tiempo de compilación:
 
-\begin{lstlisting}[style=cpp, caption=Implementacion de constant folding]
+\begin{lstlisting}[style=cpp, caption=Implementación de constant folding]
 void CodeGenerator::visit(BinaryExpr* node) {
     if (enableConstantFolding) {
         auto leftLit = dynamic_cast<LiteralExpr*>(
@@ -708,31 +735,31 @@ void CodeGenerator::visit(BinaryExpr* node) {
 
 \textbf{Ejemplo:}
 \begin{lstlisting}[style=c]
-int x = 5 + 10 * 2;  // Se evalua como 25 en compilacion
+int x = 5 + 10 * 2;  // Se evalúa como 25 en compilación
 \end{lstlisting}
 
-Codigo generado optimizado:
+Código generado optimizado:
 \begin{lstlisting}[style=asm]
-mov rax, 25          ; En lugar de multiples operaciones
+mov rax, 25          ; En lugar de múltiples operaciones
 \end{lstlisting}
 
-\subsection{Dead Code Elimination (Eliminacion de Codigo Muerto)}
+\subsection{Dead Code Elimination (Eliminación de Código Muerto)}
 
-El compilador detecta y omite codigo que nunca se ejecutara:
+El compilador detecta y omite código que nunca se ejecutará:
 
-\begin{lstlisting}[style=cpp, caption=Eliminacion de codigo muerto en if]
+\begin{lstlisting}[style=cpp, caption=Eliminación de código muerto en if]
 void CodeGenerator::visit(IfStmt* node) {
-    // Verificar si la condicion es constante
+    // Verificar si la condición es constante
     if (auto lit = dynamic_cast<LiteralExpr*>(
                        node->condition.get())) {
         if (lit->value == "0") {
-            // Condicion siempre falsa: solo generar else
+            // Condición siempre falsa: solo generar else
             if (node->elseBranch) {
                 node->elseBranch->accept(this);
             }
             return;  // Omitir rama then
         } else {
-            // Condicion siempre verdadera: solo generar then
+            // Condición siempre verdadera: solo generar then
             node->thenBranch->accept(this);
             return;  // Omitir rama else
         }
@@ -743,24 +770,24 @@ void CodeGenerator::visit(IfStmt* node) {
 \textbf{Ejemplo:}
 \begin{lstlisting}[style=c]
 if (0) {
-    z = 100;  // Este codigo nunca se ejecuta
+    z = 100;  // Este código nunca se ejecuta
 }
 \end{lstlisting}
 
-El compilador no genera codigo para el bloque interno.
+El compilador no genera código para el bloque interno.
 
 \section{Extensiones Implementadas}
 
 \subsection{Expresiones Ternarias}
 
-El operador ternario \texttt{?:} permite expresiones condicionales en linea:
+El operador ternario \texttt{?:} permite expresiones condicionales en línea:
 
-\begin{lstlisting}[style=c, caption=Ejemplo de expresion ternaria]
+\begin{lstlisting}[style=c, caption=Ejemplo de expresión ternaria]
 int max = (x > y) ? x : y;
 int result = (a > b) ? ((a > c) ? a : c) : ((b > c) ? b : c);
 \end{lstlisting}
 
-La implementacion en el parser:
+La implementación en el parser:
 
 \begin{lstlisting}[style=cpp]
 std::unique_ptr<Expr> Parser::parseTernary() {
@@ -799,7 +826,7 @@ El parser mantiene un mapa \texttt{typeAliases} que asocia nombres de alias con 
 
 \section{Casos de Prueba}
 
-El compilador incluye 18 casos de prueba organizados en cuatro categorias.
+El compilador incluye 18 casos de prueba organizados en cuatro categorías.
 
 \subsection{Tests de Funciones (3 casos)}
 
@@ -807,10 +834,10 @@ El compilador incluye 18 casos de prueba organizados en cuatro categorias.
 \centering
 \begin{tabular}{llc}
 \toprule
-\textbf{Test} & \textbf{Descripcion} & \textbf{Salida} \\
+\textbf{Test} & \textbf{Descripción} & \textbf{Salida} \\
 \midrule
-test\_func1.c & Funcion suma simple & 15 \\
-test\_func2.c & Funcion cuadrado anidada & 49 \\
+test\_func1.c & Función suma simple & 15 \\
+test\_func2.c & Función cuadrado anidada & 49 \\
 test\_func3.c & Factorial recursivo & 120 \\
 \bottomrule
 \end{tabular}
@@ -831,15 +858,15 @@ int main() {
 }
 \end{lstlisting}
 
-\subsection{Tests de Implementacion Base (5 casos)}
+\subsection{Tests de Implementación Base (5 casos)}
 
 \begin{table}[H]
 \centering
 \begin{tabular}{llc}
 \toprule
-\textbf{Test} & \textbf{Descripcion} & \textbf{Salida} \\
+\textbf{Test} & \textbf{Descripción} & \textbf{Salida} \\
 \midrule
-test\_base1.c & Aritmetica basica & 30, 10, 200, 2 \\
+test\_base1.c & Aritmética básica & 30, 10, 200, 2 \\
 test\_base2.c & Sentencias if-else & 10, 1 \\
 test\_base3.c & Bucle while & 45 \\
 test\_base4.c & Bucle for & 45 \\
@@ -854,7 +881,7 @@ test\_base5.c & Expresiones complejas & 11, 16, 4 \\
 \centering
 \begin{tabular}{llc}
 \toprule
-\textbf{Test} & \textbf{Descripcion} & \textbf{Salida} \\
+\textbf{Test} & \textbf{Descripción} & \textbf{Salida} \\
 \midrule
 test\_ext1.c & Expresiones ternarias & 10, 5 \\
 test\_ext2.c & Unsigned int & 150 \\
@@ -865,13 +892,13 @@ test\_ext5.c & Typedef & 30, 1000000, 3.140000 \\
 \end{tabular}
 \end{table}
 
-\subsection{Tests de Optimizacion (5 casos)}
+\subsection{Tests de Optimización (5 casos)}
 
 \begin{table}[H]
 \centering
 \begin{tabular}{llc}
 \toprule
-\textbf{Test} & \textbf{Descripcion} & \textbf{Salida} \\
+\textbf{Test} & \textbf{Descripción} & \textbf{Salida} \\
 \midrule
 test\_opt1.c & Constant folding & 5, 50, 25 \\
 test\_opt2.c & Dead code elimination & 30 \\
@@ -882,9 +909,9 @@ test\_opt5.c & Loop optimization & 100 \\
 \end{tabular}
 \end{table}
 
-\section{Ejemplo de Codigo Generado}
+\section{Ejemplo de Código Generado}
 
-\subsection{Codigo Fuente}
+\subsection{Código Fuente}
 
 \begin{lstlisting}[style=c, caption=Programa factorial]
 int factorial(int n) {
@@ -901,9 +928,9 @@ int main() {
 }
 \end{lstlisting}
 
-\subsection{Codigo Ensamblador Generado}
+\subsection{Código Ensamblador Generado}
 
-\begin{lstlisting}[style=asm, caption=Codigo x86-64 generado]
+\begin{lstlisting}[style=asm, caption=Código x86-64 generado]
 .intel_syntax noprefix
 .text
 .global main
@@ -911,7 +938,7 @@ int main() {
 factorial:
     push rbp
     mov rbp, rsp
-    mov rax, [rbp + 16]      ; Cargar parametro n
+    mov rax, [rbp + 16]      ; Cargar parámetro n
     push rax
     mov rax, 1
     mov rbx, rax
@@ -975,7 +1002,7 @@ int_fmt: .asciz "%ld\n"
 
 \section{Instrucciones de Uso}
 
-\subsection{Compilacion del Compilador}
+\subsection{Compilación del Compilador}
 
 \begin{lstlisting}[language=bash]
 # Compilar el compilador
@@ -985,7 +1012,7 @@ make
 make clean
 \end{lstlisting}
 
-\subsection{Ejecucion}
+\subsection{Ejecución}
 
 \textbf{Linux x86-64:}
 \begin{lstlisting}[language=bash]
@@ -1008,17 +1035,17 @@ gcc -no-pie output.s -o program
 
 \section{Conclusiones}
 
-Se logro implementar exitosamente un compilador funcional que traduce un subconjunto significativo de C a codigo ensamblador x86-64. Los principales logros incluyen:
+Se logró implementar exitosamente un compilador funcional que traduce un subconjunto significativo de C a código ensamblador x86-64. Los principales logros incluyen:
 
 \begin{itemize}
-    \item Implementacion completa de las cuatro fases del compilador
-    \item Soporte para multiples tipos de datos con promocion automatica
+    \item Implementación completa de las cuatro fases del compilador
+    \item Soporte para múltiples tipos de datos con promoción automática
     \item Manejo correcto de funciones recursivas y estructuras de control
-    \item Optimizaciones efectivas que reducen el codigo generado
-    \item Extensiones utiles como expresiones ternarias y typedef
+    \item Optimizaciones efectivas que reducen el código generado
+    \item Extensiones útiles como expresiones ternarias y typedef
 \end{itemize}
 
-El proyecto demuestra la aplicacion practica de los conceptos teoricos de compiladores, incluyendo analisis lexico, parsing recursivo descendente, verificacion de tipos, generacion de codigo y optimizaciones.
+El proyecto demuestra la aplicación práctica de los conceptos teóricos de compiladores, incluyendo análisis léxico, parsing recursivo descendente, verificación de tipos, generación de código y optimizaciones.
 
 \subsection{Trabajo Futuro}
 
@@ -1026,19 +1053,11 @@ Posibles mejoras para versiones futuras:
 
 \begin{itemize}
     \item Soporte para estructuras (struct) y uniones
-    \item Implementacion de punteros y memoria dinamica
+    \item Implementación de punteros y memoria dinámica
     \item Optimizaciones adicionales (register allocation, peephole)
-    \item Soporte para mas operadores de C
-    \item Generacion de codigo para otras arquitecturas
+    \item Soporte para más operadores de C
+    \item Generación de código para otras arquitecturas
 \end{itemize}
-
-\section{Repositorio}
-
-El codigo fuente completo del proyecto se encuentra disponible en:
-
-\begin{center}
-\url{https://github.com/mauriciosalazarsh/compialdoresfinal}
-\end{center}
 
 \section{Referencias}
 
