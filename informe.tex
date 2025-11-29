@@ -275,42 +275,50 @@ El AST utiliza el patron Visitor para permitir multiples recorridos:
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[
-    node distance=0.5cm,
-    base/.style={rectangle, draw=black, line width=0.8pt, minimum height=0.7cm, text centered, font=\footnotesize\ttfamily, rounded corners=2pt},
+    base/.style={rectangle, draw=black, line width=0.8pt, minimum height=0.6cm, text centered, font=\footnotesize\ttfamily, rounded corners=2pt},
     root/.style={base, fill=red!20, text width=1.8cm},
-    abst/.style={base, fill=orange!20, text width=1.5cm},
-    leaf/.style={base, fill=blue!15, text width=1.8cm},
+    abst/.style={base, fill=orange!20, text width=1.3cm},
+    leaf/.style={base, fill=blue!15, text width=1.6cm},
     myarrow/.style={-stealth, thick}
 ]
-    \node[root] (node) {ASTNode};
+    % nivel 0: raiz
+    \node[root] (node) at (0, 0) {ASTNode};
 
-    \node[abst, below left=0.8cm and 1.5cm of node] (expr) {Expr};
-    \node[abst, below right=0.8cm and 1.5cm of node] (stmt) {Stmt};
+    % nivel 1: clases abstractas
+    \node[abst] (expr) at (-3.5, -1.2) {Expr};
+    \node[abst] (stmt) at (3.5, -1.2) {Stmt};
 
-    \node[leaf, below left=0.6cm and 0.3cm of expr] (binary) {BinaryExpr};
-    \node[leaf, below=0.6cm of expr] (unary) {UnaryExpr};
-    \node[leaf, below right=0.6cm and 0.3cm of expr] (ternary) {TernaryExpr};
-    \node[leaf, below=0.5cm of binary] (literal) {LiteralExpr};
-    \node[leaf, below=0.5cm of ternary] (call) {CallExpr};
+    % nivel 2: subclases de expr (5 nodos)
+    \node[leaf] (binary) at (-5.5, -2.6) {BinaryExpr};
+    \node[leaf] (unary) at (-3.5, -2.6) {UnaryExpr};
+    \node[leaf] (ternary) at (-1.5, -2.6) {TernaryExpr};
+    \node[leaf] (literal) at (-5.5, -3.8) {LiteralExpr};
+    \node[leaf] (call) at (-3.5, -3.8) {CallExpr};
 
-    \node[leaf, below left=0.6cm and 0.3cm of stmt] (vardecl) {VarDeclStmt};
-    \node[leaf, below=0.6cm of stmt] (ifstmt) {IfStmt};
-    \node[leaf, below right=0.6cm and 0.3cm of stmt] (whilestmt) {WhileStmt};
-    \node[leaf, below=0.5cm of vardecl] (forstmt) {ForStmt};
-    \node[leaf, below=0.5cm of whilestmt] (block) {BlockStmt};
+    % nivel 2: subclases de stmt (5 nodos)
+    \node[leaf] (vardecl) at (1.5, -2.6) {VarDeclStmt};
+    \node[leaf] (ifstmt) at (3.5, -2.6) {IfStmt};
+    \node[leaf] (whilestmt) at (5.5, -2.6) {WhileStmt};
+    \node[leaf] (forstmt) at (3.5, -3.8) {ForStmt};
+    \node[leaf] (block) at (5.5, -3.8) {BlockStmt};
 
+    % flechas de herencia
     \draw[myarrow] (expr) -- (node);
     \draw[myarrow] (stmt) -- (node);
-    \draw[myarrow] (binary) -- (expr);
+
+    % expr -> sus hijos (lineas rectas hacia arriba)
+    \draw[myarrow] (binary.north) -- ++(0, 0.4) -| (expr.south);
     \draw[myarrow] (unary) -- (expr);
-    \draw[myarrow] (ternary) -- (expr);
-    \draw[myarrow] (literal) -- (expr);
-    \draw[myarrow] (call) -- (expr);
-    \draw[myarrow] (vardecl) -- (stmt);
+    \draw[myarrow] (ternary.north) -- ++(0, 0.4) -| (expr.south);
+    \draw[myarrow] (literal.north) -- ++(0, 0.3) -| (expr.south west);
+    \draw[myarrow] (call.north) -- ++(0, 0.3) -| (expr.south);
+
+    % stmt -> sus hijos (lineas rectas hacia arriba)
+    \draw[myarrow] (vardecl.north) -- ++(0, 0.4) -| (stmt.south);
     \draw[myarrow] (ifstmt) -- (stmt);
-    \draw[myarrow] (whilestmt) -- (stmt);
-    \draw[myarrow] (forstmt) -- (stmt);
-    \draw[myarrow] (block) -- (stmt);
+    \draw[myarrow] (whilestmt.north) -- ++(0, 0.4) -| (stmt.south);
+    \draw[myarrow] (forstmt.north) -- ++(0, 0.3) -| (stmt.south);
+    \draw[myarrow] (block.north) -- ++(0, 0.3) -| (stmt.south east);
 \end{tikzpicture}
 \caption{Jerarquia de clases del AST}
 \end{figure}
