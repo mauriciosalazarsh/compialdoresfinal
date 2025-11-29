@@ -17,7 +17,6 @@ private:
     int stringCounter;
     std::string currentFunction;
 
-    // Optimization flags
     bool enableConstantFolding;
     bool enableDeadCodeElimination;
 

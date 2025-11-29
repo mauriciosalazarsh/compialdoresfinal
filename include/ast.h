@@ -5,24 +5,20 @@
 #include <vector>
 #include <memory>
 
-// Forward declarations
 class Visitor;
 
-// Data types
 enum class DataType {
     INT, LONG, UINT, FLOAT, STRING, VOID, ARRAY, UNKNOWN
 };
 
 std::string dataTypeToString(DataType type);
 
-// Base AST Node
 class ASTNode {
 public:
     virtual ~ASTNode() = default;
     virtual void accept(Visitor* visitor) = 0;
 };
 
-// Expressions
 class Expr : public ASTNode {
 public:
     DataType exprType = DataType::UNKNOWN;
@@ -186,14 +182,12 @@ public:
     void accept(Visitor* visitor) override;
 };
 
-// Function Parameter
 struct Parameter {
     std::string name;
     DataType type;
-    std::vector<int> arrayDimensions; // For array parameters
+    std::vector<int> arrayDimensions; 
 };
 
-// Function Declaration
 class FunctionDecl : public ASTNode {
 public:
     std::string name;
@@ -206,7 +200,6 @@ public:
     void accept(Visitor* visitor) override;
 };
 
-// Program (root node)
 class Program : public ASTNode {
 public:
     std::vector<std::unique_ptr<FunctionDecl>> functions;

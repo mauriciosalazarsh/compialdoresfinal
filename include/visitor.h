@@ -1,7 +1,6 @@
 #ifndef VISITOR_H
 #define VISITOR_H
 
-// Forward declarations
 class BinaryExpr;
 class UnaryExpr;
 class TernaryExpr;

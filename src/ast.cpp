@@ -15,7 +15,6 @@ std::string dataTypeToString(DataType type) {
     }
 }
 
-// Accept methods for all node types
 void BinaryExpr::accept(Visitor* visitor) { visitor->visit(this); }
 void UnaryExpr::accept(Visitor* visitor) { visitor->visit(this); }
 void TernaryExpr::accept(Visitor* visitor) { visitor->visit(this); }

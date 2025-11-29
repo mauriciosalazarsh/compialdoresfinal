@@ -1,4 +1,3 @@
-// Extension Test 4: Float types
 int main() {
     float a = 3.14;
     float b = 2.0;

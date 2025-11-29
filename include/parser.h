@@ -11,7 +11,7 @@ class Parser {
 private:
     std::vector<Token> tokens;
     size_t current;
-    std::map<std::string, DataType> typeAliases;  // For typedef support
+    std::map<std::string, DataType> typeAliases;  
 
     Token peek(int offset = 0);
     Token advance();
@@ -19,7 +19,7 @@ private:
     bool check(TokenType type);
     void expect(TokenType type, const std::string& message);
     bool isTypeToken();
-    void parseTypedef();  // Parse typedef declarations
+    void parseTypedef();  
 
     DataType parseType();
     std::unique_ptr<Program> parseProgram();

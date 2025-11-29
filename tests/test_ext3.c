@@ -1,4 +1,3 @@
-// Extension Test 3: Long integers
 int main() {
     long x = 1000000;
     long y = 2000000;

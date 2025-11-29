@@ -1,4 +1,3 @@
-// Base Test 1: Variable declarations and arithmetic operations
 int main() {
     int x = 10;
     int y = 20;

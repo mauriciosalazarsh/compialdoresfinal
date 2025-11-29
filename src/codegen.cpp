@@ -104,7 +104,7 @@ void CodeGenerator::computeArrayOffset(const std::vector<std::unique_ptr<Expr>>&
             dimProduct *= dimensions[j];
         }
 
-        emit("pop rax"); // Get previous result
+        emit("pop rax"); 
         emit("imul rax, " + std::to_string(dimProduct));
         emit("push rax");
 
@@ -119,7 +119,6 @@ void CodeGenerator::computeArrayOffset(const std::vector<std::unique_ptr<Expr>>&
 }
 
 void CodeGenerator::visit(BinaryExpr* node) {
-    // constant folding
     if (enableConstantFolding) {
         auto leftLit = dynamic_cast<LiteralExpr*>(node->left.get());
         auto rightLit = dynamic_cast<LiteralExpr*>(node->right.get());
@@ -149,7 +148,6 @@ no_fold:
     emit("mov rbx, rax");
     emit("pop rax");
 
-    // operaciones float
     if (node->exprType == DataType::FLOAT) {
         emit("movq xmm0, rax");
         emit("movq xmm1, rbx");
@@ -161,7 +159,7 @@ no_fold:
 
         emit("movq rax, xmm0");
     } else {
-        // aritmetica entera
+ 
         if (node->op == "+") {
             emit("add rax, rbx");
         } else if (node->op == "-") {
@@ -176,7 +174,7 @@ no_fold:
             emit("idiv rbx");
             emit("mov rax, rdx");
         }
-        // comparaciones
+ 
         else if (node->op == "<") {
             emit("cmp rax, rbx");
             emit("setl al");
@@ -266,13 +264,13 @@ void CodeGenerator::visit(LiteralExpr* node) {
     if (node->exprType == DataType::FLOAT) {
         std::string label = newStringLabel();
         dataSection << label << ": .double " << node->value << "\n";
-        emit("movsd xmm0, [" + label + "]");
+        emit("movsd xmm0, [rip + " + label + "]");
         emit("movq rax, xmm0");
     } else if (node->exprType == DataType::STRING) {
         std::string label = newStringLabel();
         std::string escaped = escapeString(node->value);
         dataSection << label << ": .asciz \"" << escaped << "\"\n";
-        emit("lea rax, [" + label + "]");
+        emit("lea rax, [rip + " + label + "]");
     } else {
         emit("mov rax, " + node->value);
     }
@@ -310,7 +308,7 @@ void CodeGenerator::visit(CallExpr* node) {
         if (!node->args.empty()) {
             node->args[0]->accept(this);
             emit("mov rsi, rax");
-            emit("lea rdi, [int_fmt]");
+            emit("lea rdi, [rip + int_fmt]");
             emit("xor eax, eax");
             emit("sub rsp, 8");
             emit("call printf");
@@ -358,24 +356,31 @@ void CodeGenerator::visit(CallExpr* node) {
         return;
     }
 
-    // funciones definidas por usuario
+    // funciones definidas por usuario - usar ABI x86-64
+    std::vector<std::string> argRegsUser = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
     int numArgs = node->args.size();
-    int padding = (numArgs % 2 == 1) ? 8 : 0;
 
-    if (padding > 0) {
-        emit("sub rsp, " + std::to_string(padding));
-    }
-
+    // Guardar argumentos en orden inverso en el stack temporalmente
     for (int i = numArgs - 1; i >= 0; --i) {
         node->args[i]->accept(this);
         emit("push rax");
     }
 
+    // Mover argumentos del stack a los registros correspondientes
+    for (int i = 0; i < numArgs && i < (int)argRegsUser.size(); ++i) {
+        emit("pop " + argRegsUser[i]);
+    }
+
+    // Alinear stack a 16 bytes antes de call
+    bool needAlignment = (numArgs <= 6) && (numArgs % 2 == 1);
+    if (needAlignment) {
+        emit("sub rsp, 8");
+    }
+
     emit("call " + node->name);
 
-    int cleanup = numArgs * 8 + padding;
-    if (cleanup > 0) {
-        emit("add rsp, " + std::to_string(cleanup));
+    if (needAlignment) {
+        emit("add rsp, 8");
     }
 }
 
@@ -573,22 +578,33 @@ void CodeGenerator::visit(FunctionDecl* node) {
     symbolTable.enterScope();
     symbolTable.resetOffset();
 
-    int paramOffset = 16;
-    for (auto& param : node->params) {
+    // Registros para parámetros según ABI x86-64
+    std::vector<std::string> paramRegs = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+
+    // Reservar espacio en stack para los parámetros (se guardarán como variables locales)
+    for (size_t i = 0; i < node->params.size() && i < paramRegs.size(); ++i) {
         Symbol paramSym;
-        paramSym.name = param.name;
-        paramSym.type = param.type;
-        paramSym.isParameter = true;
-        paramSym.offset = paramOffset;
-        paramSym.arrayDimensions = param.arrayDimensions;
-        paramOffset += 8;
-        symbolTable.declareVariable(param.name, paramSym);
+        paramSym.name = node->params[i].name;
+        paramSym.type = node->params[i].type;
+        paramSym.isParameter = false;  // Ahora se tratan como variables locales
+        paramSym.offset = symbolTable.allocateStackSpace(8);
+        paramSym.arrayDimensions = node->params[i].arrayDimensions;
+        symbolTable.declareVariable(node->params[i].name, paramSym);
     }
 
     preDeclareVariables(node->body.get());
     int stackSize = -symbolTable.getCurrentOffset();
 
     generatePrologue(node->name, stackSize);
+
+    // Guardar los parámetros de los registros al stack
+    for (size_t i = 0; i < node->params.size() && i < paramRegs.size(); ++i) {
+        Symbol* sym = symbolTable.lookup(node->params[i].name);
+        if (sym) {
+            emit("mov [rbp - " + std::to_string(-sym->offset) + "], " + paramRegs[i]);
+        }
+    }
+
     node->body->accept(this);
 
     if (node->returnType == DataType::VOID) {
@@ -612,7 +628,7 @@ void CodeGenerator::visit(Program* node) {
     code << "    push rbp\n";
     code << "    mov rbp, rsp\n";
     code << "    mov rsi, rdi\n";
-    code << "    lea rdi, [int_fmt]\n";
+    code << "    lea rdi, [rip + int_fmt]\n";
     code << "    xor rax, rax\n";
     code << "    call printf\n";
     code << "    mov rsp, rbp\n";

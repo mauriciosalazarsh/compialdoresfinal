@@ -1,4 +1,3 @@
-// Base Test 2: If-else statements
 int main() {
     int x = 5;
     int y = 10;

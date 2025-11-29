@@ -1,4 +1,3 @@
-// Extension Test 1: Ternary expressions
 int main() {
     int x = 5;
     int y = 10;

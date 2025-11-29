@@ -10,9 +10,9 @@ struct Symbol {
     std::string name;
     DataType type;
     bool isMutable;
-    int offset; // Stack offset for local variables
+    int offset;
     bool isParameter;
-    std::vector<int> arrayDimensions; // For arrays
+    std::vector<int> arrayDimensions; 
 
     Symbol() : type(DataType::UNKNOWN), isMutable(false), offset(0), isParameter(false) {}
 };

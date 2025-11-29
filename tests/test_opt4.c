@@ -1,4 +1,3 @@
-// Optimization Test 4: Common subexpression elimination
 int main() {
     int a = 5;
     int b = 3;

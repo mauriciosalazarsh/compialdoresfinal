@@ -1,4 +1,3 @@
-// Test 3: Recursive function
 int factorial(int n) {
     if (n <= 1) {
         return 1;

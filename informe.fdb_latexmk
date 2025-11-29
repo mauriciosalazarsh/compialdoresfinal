@@ -1,6 +1,6 @@
 # Fdb version 4
-["pdflatex"] 1764311315.59513 "/Users/msalazarh/Documents/utec/Compiladores/Final/informe.tex" "informe.pdf" "informe" 1764311316.46875 0
-  "/Users/msalazarh/Documents/utec/Compiladores/Final/informe.tex" 1764311313.7092 29783 83deb05f5a700d8262668f7fa568c2d4 ""
+["pdflatex"] 1764398478.96263 "/Users/msalazarh/Documents/utec/Compiladores/Final/informe.tex" "informe.pdf" "informe" 1764398479.80937 2
+  "/Users/msalazarh/Documents/utec/Compiladores/Final/informe.tex" 1764398477.75956 31062 a6a232566c60fecd481b8e7fe95523b6 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm" 1246382020 1004 54797486969f23fa377b128694d548df ""
   "/usr/local/texlive/2025/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex8.tfm" 1246382020 988 bdf658c3bfc2d96d3c8b02cfc1c94c20 ""
@@ -185,10 +185,10 @@
   "/usr/local/texlive/2025/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1762726181 5467155 19efa205003f9ecad95fbbaa6ff24da1 ""
   "/usr/local/texlive/2025/texmf-var/web2c/pdftex/pdflatex.fmt" 1762726130 3345723 031026a2320f4688d8c48acb12c159fc ""
   "/usr/local/texlive/2025/texmf.cnf" 1741450484 577 418a7058ec8e006d8704f60ecd22c938 ""
-  "informe.aux" 1764311316.4181 9848 8b758541b68f9ffa1e0f8adea0158a43 "pdflatex"
-  "informe.out" 1764311316.41938 8014 33e9f7786ffb7c1c3ed056a950d5df9c "pdflatex"
-  "informe.tex" 1764311313.7092 29783 83deb05f5a700d8262668f7fa568c2d4 ""
-  "informe.toc" 1764311316.41961 4018 d518fa433ea9167978f01250384d7163 "pdflatex"
+  "informe.aux" 1764398479.74708 10023 e4ef8363f3106228bfd938708e03e7af "pdflatex"
+  "informe.out" 1764398479.74858 8277 d2408cde02b027b35e9d43c38abf5d04 "pdflatex"
+  "informe.tex" 1764398477.75956 31062 a6a232566c60fecd481b8e7fe95523b6 ""
+  "informe.toc" 1764398479.7489 4133 bcc7c45cd66fb2d5cca184641b2f4ce1 "pdflatex"
   (generated)
   "informe.aux"
   "informe.log"

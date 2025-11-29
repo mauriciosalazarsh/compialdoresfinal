@@ -1,4 +1,3 @@
-// Optimization Test 3: Strength reduction
 int main() {
     int x = 8;
     int y = x * 2;

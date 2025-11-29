@@ -1,4 +1,3 @@
-// Optimization Test 5: Loop optimization
 int main() {
     int sum = 0;
 

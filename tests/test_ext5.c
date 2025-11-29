@@ -1,4 +1,3 @@
-// Extension Test 5: Typedef (type aliases)
 typedef int entero;
 typedef long numero_grande;
 typedef float decimal;

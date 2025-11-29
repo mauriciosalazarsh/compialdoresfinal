@@ -1,4 +1,3 @@
-// Optimization Test 1: Constant folding
 int main() {
     int x = 2 + 3;
     int y = 10 * 5;

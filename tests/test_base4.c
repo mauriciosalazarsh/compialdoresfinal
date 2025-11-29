@@ -1,4 +1,3 @@
-// Base Test 4: For loops
 int main() {
     int sum = 0;
 

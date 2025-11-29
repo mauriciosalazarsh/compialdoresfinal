@@ -5,27 +5,22 @@
 #include <map>
 
 enum class TokenType {
-    // Keywords (C language)
     IF, ELSE, WHILE, FOR, RETURN,
     INT, LONG, FLOAT, DOUBLE, CHAR, SHORT, UNSIGNED, VOID,
     STRUCT, TYPEDEF, CONST, STATIC,
     BREAK, CONTINUE, SWITCH, CASE, DEFAULT, DO,
 
-    // Literals
     NUM, FLOAT_LIT, ID, STRING_LIT,
 
-    // Operators
     PLUS, MINUS, MUL, DIV, MOD, ASSIGN,
     EQ, NE, LT, GT, LE, GE,
     AND, OR, NOT,
-    QUESTION, // ? for ternary
-    INCREMENT, DECREMENT, // ++ and --
+    QUESTION, 
+    INCREMENT, DECREMENT, 
 
-    // Delimiters
     LPAREN, RPAREN, LBRACE, RBRACE, LBRACKET, RBRACKET,
     COMMA, COLON, SEMICOLON, ARROW, DOT,
 
-    // Special
     END, ERR
 };
 
@@ -36,7 +31,6 @@ public:
     int line;
     int column;
 
-    // For numeric literals
     union {
         long long intValue;
         unsigned long long uintValue;
@@ -50,7 +44,6 @@ public:
     static std::string typeToString(TokenType type);
 };
 
-// Keywords map
 extern std::map<std::string, TokenType> keywords;
 
 #endif // TOKEN_H

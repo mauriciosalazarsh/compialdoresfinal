@@ -1,4 +1,3 @@
-// Base Test 5: Complex expressions
 int main() {
     int a = 5;
     int b = 3;

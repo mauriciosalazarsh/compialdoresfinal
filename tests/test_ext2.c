@@ -1,4 +1,3 @@
-// Extension Test 2: Unsigned integers
 int main() {
     unsigned int a = 100;
     unsigned int b = 50;
