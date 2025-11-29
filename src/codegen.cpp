@@ -25,13 +25,8 @@ void CodeGenerator::generatePrologue(const std::string& funcName, int stackSize)
     emitLabel(funcName);
     emit("push rbp");
     emit("mov rbp, rsp");
-    // System V ABI: before CALL, rsp must be 16-byte aligned.
-    // After entering function: rsp = 16n + 8 (return addr was pushed)
-    // After push rbp: rsp = 16n (aligned)
-    // We want rsp to stay 16-byte aligned, so sub by multiple of 16.
-    // Always reserve at least 16 bytes to maintain alignment for any calls.
+    // alinear a 16 bytes
     int alignedSize = ((stackSize + 15) & ~15);
-    if (alignedSize == 0) alignedSize = 0; // No local vars = no sub needed, rsp already aligned
     if (alignedSize > 0) {
         emit("sub rsp, " + std::to_string(alignedSize));
     }
@@ -53,7 +48,6 @@ void CodeGenerator::loadVariable(const std::string& varName, DataType type) {
         emit("mov rax, [rbp - " + std::to_string(-sym->offset) + "]");
     }
 
-    // Convert to appropriate register for type
     if (type == DataType::FLOAT) {
         emit("movq xmm0, rax");
     }
@@ -77,40 +71,34 @@ void CodeGenerator::storeVariable(const std::string& varName, DataType type) {
 void CodeGenerator::convertType(DataType from, DataType to) {
     if (from == to) return;
 
-    // INT/LONG/UINT -> FLOAT
+    // int/long/uint -> float
     if ((from == DataType::INT || from == DataType::LONG || from == DataType::UINT) &&
         to == DataType::FLOAT) {
         emit("cvtsi2sd xmm0, rax");
     }
-    // FLOAT -> INT/LONG
+    // float -> int/long
     else if (from == DataType::FLOAT &&
              (to == DataType::INT || to == DataType::LONG || to == DataType::UINT)) {
         emit("cvttsd2si rax, xmm0");
     }
-    // INT -> LONG (sign extension)
+    // int -> long
     else if (from == DataType::INT && to == DataType::LONG) {
-        emit("cdqe"); // Sign extend eax to rax
+        emit("cdqe");
     }
-    // UINT -> LONG (zero extension, rax is already 64-bit)
+    // uint -> long
     else if (from == DataType::UINT && to == DataType::LONG) {
-        emit("mov eax, eax"); // Zero-extend by writing to eax
+        emit("mov eax, eax");
     }
 }
 
 void CodeGenerator::computeArrayOffset(const std::vector<std::unique_ptr<Expr>>& indices,
                                       const std::vector<int>& dimensions) {
-    // For multidimensional arrays: offset = i0 * (d1 * d2 * ... * dn) + i1 * (d2 * ... * dn) + ...
-    // Result in rax
-
     if (indices.empty()) return;
 
-    // Calculate first index
     indices[0]->accept(this);
-    emit("push rax"); // Save first index
+    emit("push rax");
 
-    // For each subsequent dimension, multiply and add
     for (size_t i = 1; i < indices.size(); ++i) {
-        // Calculate dimension product
         int dimProduct = 1;
         for (size_t j = i; j < dimensions.size(); ++j) {
             dimProduct *= dimensions[j];
@@ -127,11 +115,11 @@ void CodeGenerator::computeArrayOffset(const std::vector<std::unique_ptr<Expr>>&
     }
 
     emit("pop rax");
-    emit("imul rax, 8"); // Scale by element size (8 bytes)
+    emit("imul rax, 8");
 }
 
 void CodeGenerator::visit(BinaryExpr* node) {
-    // Constant folding optimization
+    // constant folding
     if (enableConstantFolding) {
         auto leftLit = dynamic_cast<LiteralExpr*>(node->left.get());
         auto rightLit = dynamic_cast<LiteralExpr*>(node->right.get());
@@ -154,15 +142,14 @@ void CodeGenerator::visit(BinaryExpr* node) {
     }
 
 no_fold:
-    // Generate code for operands
     node->left->accept(this);
-    emit("push rax"); // Save left operand
+    emit("push rax");
 
     node->right->accept(this);
-    emit("mov rbx, rax"); // Right operand in rbx
-    emit("pop rax"); // Left operand back in rax
+    emit("mov rbx, rax");
+    emit("pop rax");
 
-    // Arithmetic operations
+    // operaciones float
     if (node->exprType == DataType::FLOAT) {
         emit("movq xmm0, rax");
         emit("movq xmm1, rbx");
@@ -174,7 +161,7 @@ no_fold:
 
         emit("movq rax, xmm0");
     } else {
-        // Integer arithmetic
+        // aritmetica entera
         if (node->op == "+") {
             emit("add rax, rbx");
         } else if (node->op == "-") {
@@ -182,14 +169,14 @@ no_fold:
         } else if (node->op == "*") {
             emit("imul rax, rbx");
         } else if (node->op == "/") {
-            emit("cqo"); // Sign extend rax to rdx:rax
+            emit("cqo");
             emit("idiv rbx");
         } else if (node->op == "%") {
             emit("cqo");
             emit("idiv rbx");
-            emit("mov rax, rdx"); // Remainder in rdx
+            emit("mov rax, rdx");
         }
-        // Comparison operations
+        // comparaciones
         else if (node->op == "<") {
             emit("cmp rax, rbx");
             emit("setl al");
@@ -215,7 +202,7 @@ no_fold:
             emit("setne al");
             emit("movzx rax, al");
         }
-        // Logical operations
+        // logicas
         else if (node->op == "&&") {
             emit("and rax, rbx");
         } else if (node->op == "||") {
@@ -247,16 +234,13 @@ void CodeGenerator::visit(TernaryExpr* node) {
     std::string falseLabel = newLabel();
     std::string endLabel = newLabel();
 
-    // Evaluate condition
     node->condition->accept(this);
     emit("test rax, rax");
     emit("jz " + falseLabel);
 
-    // True branch
     node->trueExpr->accept(this);
     emit("jmp " + endLabel);
 
-    // False branch
     emitLabel(falseLabel);
     node->falseExpr->accept(this);
 
@@ -280,7 +264,6 @@ std::string CodeGenerator::escapeString(const std::string& str) {
 
 void CodeGenerator::visit(LiteralExpr* node) {
     if (node->exprType == DataType::FLOAT) {
-        // Store float in data section and load
         std::string label = newStringLabel();
         dataSection << label << ": .double " << node->value << "\n";
         emit("movsd xmm0, [" + label + "]");
@@ -309,30 +292,26 @@ void CodeGenerator::visit(ArrayAccessExpr* node) {
     Symbol* sym = symbolTable.lookup(idExpr->name);
     if (!sym) return;
 
-    // Compute array offset
     computeArrayOffset(node->indices, sym->arrayDimensions);
 
-    // Load base address
     if (sym->isParameter) {
         emit("mov rbx, [rbp + " + std::to_string(sym->offset) + "]");
     } else {
         emit("lea rbx, [rbp - " + std::to_string(-sym->offset) + "]");
     }
 
-    // Load element
     emit("add rbx, rax");
     emit("mov rax, [rbx]");
 }
 
 void CodeGenerator::visit(CallExpr* node) {
-    // Special handling for println
+    // println
     if (node->name == "println") {
         if (!node->args.empty()) {
             node->args[0]->accept(this);
             emit("mov rsi, rax");
             emit("lea rdi, [int_fmt]");
-            emit("xor eax, eax"); // No XMM registers used
-            // Align stack to 16 bytes before call (sub 8 to align, call will push 8 more)
+            emit("xor eax, eax");
             emit("sub rsp, 8");
             emit("call printf");
             emit("add rsp, 8");
@@ -340,12 +319,11 @@ void CodeGenerator::visit(CallExpr* node) {
         return;
     }
 
-    // Special handling for printf (System V ABI: rdi, rsi, rdx, rcx, r8, r9)
+    // printf
     if (node->name == "printf") {
         std::vector<std::string> argRegs = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
         int numArgs = node->args.size();
 
-        // Check if we have float arguments (skip format string at index 0)
         bool hasFloatArg = false;
         for (size_t i = 1; i < node->args.size(); ++i) {
             if (node->args[i]->exprType == DataType::FLOAT) {
@@ -355,61 +333,46 @@ void CodeGenerator::visit(CallExpr* node) {
         }
 
         if (hasFloatArg && numArgs >= 2) {
-            // For float: format in rdi, float value in xmm0
-            node->args[0]->accept(this);  // Format string
+            node->args[0]->accept(this);
             emit("mov rdi, rax");
 
-            node->args[1]->accept(this);  // Float value
+            node->args[1]->accept(this);
             emit("movq xmm0, rax");
 
-            emit("mov eax, 1");  // 1 XMM register used
-            // Stack is 16-byte aligned after prologue, just call
+            emit("mov eax, 1");
             emit("call printf");
             return;
         }
 
-        // For non-float: evaluate args and put directly in registers
-        // Evaluate in reverse order and save to stack, then pop to registers
         for (int i = numArgs - 1; i >= 0; --i) {
             node->args[i]->accept(this);
             emit("push rax");
         }
 
-        // Pop arguments into correct registers
         for (int i = 0; i < numArgs && i < (int)argRegs.size(); ++i) {
             emit("pop " + argRegs[i]);
         }
 
-        emit("xor eax, eax"); // No XMM registers used
-        // Stack is back to 16-byte aligned after all pops, just call
+        emit("xor eax, eax");
         emit("call printf");
         return;
     }
 
-    // For user-defined functions, use stack-based calling convention
+    // funciones definidas por usuario
     int numArgs = node->args.size();
-
-    // Stack alignment: before call, rsp must be 16-byte aligned.
-    // Currently rsp is 16-byte aligned (after prologue).
-    // Each push adds 8 bytes. After numArgs pushes:
-    // - If numArgs is even: still 16-byte aligned
-    // - If numArgs is odd: 8-byte aligned (need 8 bytes padding)
     int padding = (numArgs % 2 == 1) ? 8 : 0;
 
     if (padding > 0) {
         emit("sub rsp, " + std::to_string(padding));
     }
 
-    // Push arguments in reverse order (right to left)
     for (int i = numArgs - 1; i >= 0; --i) {
         node->args[i]->accept(this);
         emit("push rax");
     }
 
-    // Call function
     emit("call " + node->name);
 
-    // Clean up arguments and padding from stack
     int cleanup = numArgs * 8 + padding;
     if (cleanup > 0) {
         emit("add rsp, " + std::to_string(cleanup));
@@ -417,7 +380,6 @@ void CodeGenerator::visit(CallExpr* node) {
 }
 
 void CodeGenerator::visit(VarDeclStmt* node) {
-    // Declare variable in symbol table if not already declared
     Symbol* sym = symbolTable.lookup(node->name);
     if (!sym) {
         Symbol newSym;
@@ -425,10 +387,9 @@ void CodeGenerator::visit(VarDeclStmt* node) {
         newSym.type = node->type;
         newSym.isParameter = false;
 
-        // Calculate array size if it's an array
-        int arraySize = 8; // Default size for scalars
+        int arraySize = 8;
         if (!node->arrayDimensions.empty()) {
-            arraySize = 8; // Start with element size
+            arraySize = 8;
             for (int dim : node->arrayDimensions) {
                 arraySize *= dim;
             }
@@ -440,7 +401,6 @@ void CodeGenerator::visit(VarDeclStmt* node) {
         sym = symbolTable.lookup(node->name);
     }
 
-    // Generate initialization code
     if (node->initializer) {
         node->initializer->accept(this);
         convertType(node->initializer->exprType, node->type);
@@ -452,7 +412,6 @@ void CodeGenerator::visit(AssignStmt* node) {
     node->value->accept(this);
     emit("push rax");
 
-    // Handle array assignment
     if (auto arrayAccess = dynamic_cast<ArrayAccessExpr*>(node->target.get())) {
         auto idExpr = dynamic_cast<IdentifierExpr*>(arrayAccess->array.get());
         if (idExpr) {
@@ -488,7 +447,6 @@ void CodeGenerator::visit(IfStmt* node) {
     std::string elseLabel = newLabel();
     std::string endLabel = newLabel();
 
-    // Evaluate condition
     node->condition->accept(this);
     emit("test rax, rax");
 
@@ -525,28 +483,23 @@ void CodeGenerator::visit(ForStmt* node) {
     std::string startLabel = newLabel();
     std::string endLabel = newLabel();
 
-    // Initialize loop variable
     node->start->accept(this);
     Symbol* loopVar = symbolTable.lookup(node->varName);
     if (loopVar) {
         storeVariable(node->varName, DataType::INT);
     }
 
-    // Loop start
     emitLabel(startLabel);
 
-    // Check condition: i < end (C-style, exclusive upper bound)
     loadVariable(node->varName, DataType::INT);
     emit("push rax");
     node->end->accept(this);
     emit("pop rbx");
     emit("cmp rbx, rax");
-    emit("jge " + endLabel); // Jump if i >= end (exit loop)
+    emit("jge " + endLabel);
 
-    // Execute body
     node->body->accept(this);
 
-    // Increment loop variable
     loadVariable(node->varName, DataType::INT);
     emit("inc rax");
     storeVariable(node->varName, DataType::INT);
@@ -570,7 +523,6 @@ void CodeGenerator::visit(ReturnStmt* node) {
 
 void CodeGenerator::preDeclareVariables(Stmt* stmt) {
     if (auto varDecl = dynamic_cast<VarDeclStmt*>(stmt)) {
-        // Check if variable is already declared
         Symbol* existing = symbolTable.lookup(varDecl->name);
         if (!existing) {
             Symbol newSym;
@@ -578,10 +530,9 @@ void CodeGenerator::preDeclareVariables(Stmt* stmt) {
             newSym.type = varDecl->type;
             newSym.isParameter = false;
 
-            // Calculate array size if it's an array
-            int arraySize = 8; // Default size for scalars
+            int arraySize = 8;
             if (!varDecl->arrayDimensions.empty()) {
-                arraySize = 8; // Start with element size
+                arraySize = 8;
                 for (int dim : varDecl->arrayDimensions) {
                     arraySize *= dim;
                 }
@@ -603,7 +554,6 @@ void CodeGenerator::preDeclareVariables(Stmt* stmt) {
     } else if (auto whileStmt = dynamic_cast<WhileStmt*>(stmt)) {
         preDeclareVariables(whileStmt->body.get());
     } else if (auto forStmt = dynamic_cast<ForStmt*>(stmt)) {
-        // Declare loop variable
         Symbol* existing = symbolTable.lookup(forStmt->varName);
         if (!existing) {
             Symbol newSym;
@@ -620,11 +570,9 @@ void CodeGenerator::preDeclareVariables(Stmt* stmt) {
 void CodeGenerator::visit(FunctionDecl* node) {
     currentFunction = node->name;
 
-    // Calculate stack size needed
     symbolTable.enterScope();
     symbolTable.resetOffset();
 
-    // Process parameters
     int paramOffset = 16;
     for (auto& param : node->params) {
         Symbol paramSym;
@@ -637,16 +585,12 @@ void CodeGenerator::visit(FunctionDecl* node) {
         symbolTable.declareVariable(param.name, paramSym);
     }
 
-    // Pre-declare all local variables to calculate stack size
     preDeclareVariables(node->body.get());
-
-    // Calculate stack size after all variables are declared
     int stackSize = -symbolTable.getCurrentOffset();
 
     generatePrologue(node->name, stackSize);
     node->body->accept(this);
 
-    // Ensure epilogue if no explicit return
     if (node->returnType == DataType::VOID) {
         generateEpilogue();
     }
@@ -655,19 +599,15 @@ void CodeGenerator::visit(FunctionDecl* node) {
 }
 
 void CodeGenerator::visit(Program* node) {
-    // Header
     code << ".intel_syntax noprefix\n";
     code << ".text\n";
     code << ".global main\n\n";
 
-    // Generate code for all functions
     for (auto& func : node->functions) {
         func->accept(this);
         code << "\n";
     }
 
-    // Add runtime support functions
-    code << "# Runtime support functions\n";
     code << "print_int:\n";
     code << "    push rbp\n";
     code << "    mov rbp, rsp\n";
@@ -679,7 +619,6 @@ void CodeGenerator::visit(Program* node) {
     code << "    pop rbp\n";
     code << "    ret\n\n";
 
-    // Data section
     code << ".data\n";
     code << "int_fmt: .asciz \"%ld\\n\"\n";
     code << dataSection.str();

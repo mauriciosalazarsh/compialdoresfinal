@@ -35,13 +35,13 @@ void Scanner::skipComment() {
             advance();
         }
     } else if (current == '/' && peek() == '*') {
-        advance(); // skip '/'
-        advance(); // skip '*'
+        advance();
+        advance();
         while (true) {
             if (current == '\0') break;
             if (current == '*' && peek() == '/') {
-                advance(); // skip '*'
-                advance(); // skip '/'
+                advance();
+                advance();
                 break;
             }
             advance();
@@ -50,7 +50,7 @@ void Scanner::skipComment() {
 }
 
 void Scanner::skipPreprocessor() {
-    // Skip #include and other preprocessor directives
+    // saltar directivas del preprocesador
     if (current == '#') {
         while (current != '\n' && current != '\0') {
             advance();
@@ -80,7 +80,7 @@ Token Scanner::scanNumber() {
         }
     }
 
-    // Check for type suffix
+    // sufijo de tipo
     if (current == 'u' || current == 'U') {
         isUnsigned = true;
         advance();
@@ -123,7 +123,7 @@ Token Scanner::scanIdentifier() {
 Token Scanner::scanString() {
     int startLine = line, startCol = column;
     std::string str;
-    advance(); // skip opening quote
+    advance();
 
     while (current != '"' && current != '\0') {
         if (current == '\\') {
@@ -142,7 +142,7 @@ Token Scanner::scanString() {
     }
 
     if (current == '"') {
-        advance(); // skip closing quote
+        advance();
     }
 
     return Token(TokenType::STRING_LIT, str, startLine, startCol);
@@ -151,7 +151,7 @@ Token Scanner::scanString() {
 Token Scanner::nextToken() {
     skipWhitespace();
 
-    // Skip preprocessor directives (#include, etc.)
+    // saltar directivas
     while (current == '#') {
         skipPreprocessor();
         skipWhitespace();
@@ -168,22 +168,22 @@ Token Scanner::nextToken() {
 
     int startLine = line, startCol = column;
 
-    // Numbers
+    // numeros
     if (std::isdigit(current)) {
         return scanNumber();
     }
 
-    // Identifiers and keywords
+    // identificadores y keywords
     if (std::isalpha(current) || current == '_') {
         return scanIdentifier();
     }
 
-    // Strings
+    // strings
     if (current == '"') {
         return scanString();
     }
 
-    // Two-character operators
+    // operadores de dos caracteres
     if (current == '=' && peek() == '=') {
         advance(); advance();
         return Token(TokenType::EQ, "==", startLine, startCol);
@@ -229,7 +229,7 @@ Token Scanner::nextToken() {
         return Token(TokenType::MINUS, "-=", startLine, startCol);
     }
 
-    // Single-character tokens
+    // tokens de un caracter
     char c = current;
     advance();
 

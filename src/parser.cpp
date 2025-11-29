@@ -9,7 +9,7 @@ Token Parser::peek(int offset) {
     if (pos < tokens.size()) {
         return tokens[pos];
     }
-    return tokens.back(); // Return END token
+    return tokens.back();
 }
 
 Token Parser::advance() {
@@ -39,18 +39,18 @@ void Parser::expect(TokenType type, const std::string& message) {
 }
 
 DataType Parser::parseType() {
-    // Handle unsigned types
+    // tipos unsigned
     if (match(TokenType::UNSIGNED)) {
         if (match(TokenType::INT)) return DataType::UINT;
-        if (match(TokenType::LONG)) return DataType::UINT; // unsigned long
-        return DataType::UINT; // default to unsigned int
+        if (match(TokenType::LONG)) return DataType::UINT;
+        return DataType::UINT;
     }
     if (match(TokenType::INT)) return DataType::INT;
     if (match(TokenType::LONG)) return DataType::LONG;
     if (match(TokenType::FLOAT)) return DataType::FLOAT;
     if (match(TokenType::VOID)) return DataType::VOID;
 
-    // Check for typedef aliases
+    // verificar aliases de typedef
     if (check(TokenType::ID)) {
         std::string typeName = peek().lexeme;
         auto it = typeAliases.find(typeName);
@@ -64,7 +64,6 @@ DataType Parser::parseType() {
 }
 
 void Parser::parseTypedef() {
-    // typedef existing_type new_name;
     expect(TokenType::TYPEDEF, "Expected 'typedef'");
 
     DataType baseType = parseType();
@@ -73,8 +72,6 @@ void Parser::parseTypedef() {
     expect(TokenType::ID, "Expected type alias name");
 
     expect(TokenType::SEMICOLON, "Expected ';' after typedef");
-
-    // Store the alias
     typeAliases[aliasName] = baseType;
 }
 
@@ -84,7 +81,6 @@ bool Parser::isTypeToken() {
         check(TokenType::VOID)) {
         return true;
     }
-    // Check if it's a typedef alias
     if (check(TokenType::ID)) {
         return typeAliases.find(peek().lexeme) != typeAliases.end();
     }
@@ -99,7 +95,6 @@ std::unique_ptr<Program> Parser::parseProgram() {
     std::vector<std::unique_ptr<FunctionDecl>> functions;
 
     while (!check(TokenType::END)) {
-        // Handle typedef declarations at global scope
         if (check(TokenType::TYPEDEF)) {
             parseTypedef();
             continue;
@@ -111,7 +106,6 @@ std::unique_ptr<Program> Parser::parseProgram() {
 }
 
 std::unique_ptr<FunctionDecl> Parser::parseFunctionDecl() {
-    // C syntax: return_type function_name(params) { body }
     DataType returnType = parseType();
 
     std::string name = peek().lexeme;
@@ -122,18 +116,16 @@ std::unique_ptr<FunctionDecl> Parser::parseFunctionDecl() {
     std::vector<Parameter> params;
     if (!check(TokenType::RPAREN)) {
         do {
-            // C syntax: type param_name
             Parameter param;
             param.type = parseType();
             param.name = peek().lexeme;
             expect(TokenType::ID, "Expected parameter name");
 
-            // Check for array parameters
             while (match(TokenType::LBRACKET)) {
                 if (match(TokenType::NUM)) {
                     param.arrayDimensions.push_back(std::stoi(tokens[current-1].lexeme));
                 } else {
-                    param.arrayDimensions.push_back(-1); // Unknown size
+                    param.arrayDimensions.push_back(-1);
                 }
                 expect(TokenType::RBRACKET, "Expected ']'");
             }
@@ -150,7 +142,6 @@ std::unique_ptr<FunctionDecl> Parser::parseFunctionDecl() {
 }
 
 std::unique_ptr<Stmt> Parser::parseStatement() {
-    // C syntax: type declarations start with a type keyword
     if (isTypeToken()) {
         return parseVarDecl();
     }
@@ -170,21 +161,19 @@ std::unique_ptr<Stmt> Parser::parseStatement() {
         return parseReturnStmt();
     }
 
-    // Expression statement or assignment
     auto expr = parseExpression();
 
     if (match(TokenType::ASSIGN)) {
         auto value = parseExpression();
-        match(TokenType::SEMICOLON); // optional semicolon
+        match(TokenType::SEMICOLON);
         return std::make_unique<AssignStmt>(std::move(expr), std::move(value));
     }
 
-    match(TokenType::SEMICOLON); // optional semicolon
+    match(TokenType::SEMICOLON);
     return std::make_unique<ExprStmt>(std::move(expr));
 }
 
 std::unique_ptr<VarDeclStmt> Parser::parseVarDecl() {
-    // C syntax: type var_name [= initializer];
     DataType type = parseType();
 
     std::string name = peek().lexeme;
@@ -205,9 +194,7 @@ std::unique_ptr<VarDeclStmt> Parser::parseVarDecl() {
         initializer = parseExpression();
     }
 
-    match(TokenType::SEMICOLON); // consume semicolon if present
-
-    // All C variables are mutable by default
+    match(TokenType::SEMICOLON);
     auto decl = std::make_unique<VarDeclStmt>(true, name, type, std::move(initializer));
     decl->arrayDimensions = arrayDimensions;
 
@@ -242,11 +229,9 @@ std::unique_ptr<Stmt> Parser::parseWhileStmt() {
 }
 
 std::unique_ptr<Stmt> Parser::parseForStmt() {
-    // C syntax: for (int i = 0; i < 10; i++) { ... }
     expect(TokenType::FOR, "Expected 'for'");
     expect(TokenType::LPAREN, "Expected '('");
 
-    // Parse initialization: int i = 0
     DataType initType = parseType();
     std::string varName = peek().lexeme;
     expect(TokenType::ID, "Expected loop variable");
@@ -254,12 +239,10 @@ std::unique_ptr<Stmt> Parser::parseForStmt() {
     auto start = parseExpression();
     expect(TokenType::SEMICOLON, "Expected ';'");
 
-    // Parse condition: i < 10
     auto condition = parseExpression();
     expect(TokenType::SEMICOLON, "Expected ';'");
 
-    // Parse increment: i++ (we'll extract the end value from the condition)
-    // Skip the increment expression (i++), we don't need it for ForStmt
+    // saltar incremento
     while (!check(TokenType::RPAREN) && !check(TokenType::END)) {
         advance();
     }
@@ -268,15 +251,12 @@ std::unique_ptr<Stmt> Parser::parseForStmt() {
 
     auto body = parseStatement();
 
-    // Extract end value from condition (e.g., i < 10 -> end = 10)
-    // For simplicity, we'll use the condition's right side
-    // The ForStmt expects start and end values
+    // extraer valor final de la condicion
     BinaryExpr* binCond = dynamic_cast<BinaryExpr*>(condition.get());
     std::unique_ptr<Expr> end;
     if (binCond && (binCond->op == "<" || binCond->op == "<=")) {
         end = std::move(binCond->right);
     } else {
-        // Fallback: create a literal 10
         end = std::make_unique<LiteralExpr>("10", DataType::INT);
     }
 
@@ -305,7 +285,7 @@ std::unique_ptr<Stmt> Parser::parseReturnStmt() {
         value = parseExpression();
     }
 
-    match(TokenType::SEMICOLON); // consume semicolon if present
+    match(TokenType::SEMICOLON);
 
     return std::make_unique<ReturnStmt>(std::move(value));
 }
@@ -415,12 +395,10 @@ std::unique_ptr<Expr> Parser::parsePostfix() {
 
     while (true) {
         if (match(TokenType::LBRACKET)) {
-            // Array access
             std::vector<std::unique_ptr<Expr>> indices;
             indices.push_back(parseExpression());
             expect(TokenType::RBRACKET, "Expected ']'");
 
-            // Handle multidimensional arrays
             while (match(TokenType::LBRACKET)) {
                 indices.push_back(parseExpression());
                 expect(TokenType::RBRACKET, "Expected ']'");
@@ -428,7 +406,6 @@ std::unique_ptr<Expr> Parser::parsePostfix() {
 
             expr = std::make_unique<ArrayAccessExpr>(std::move(expr), std::move(indices));
         } else if (match(TokenType::LPAREN)) {
-            // Function call
             if (auto id = dynamic_cast<IdentifierExpr*>(expr.get())) {
                 std::string name = id->name;
                 std::vector<std::unique_ptr<Expr>> args;

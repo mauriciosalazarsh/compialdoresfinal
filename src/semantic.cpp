@@ -3,19 +3,18 @@
 
 SemanticAnalyzer::SemanticAnalyzer(SymbolTable& symTable)
     : symbolTable(symTable), currentFunctionReturnType(DataType::VOID), hasErrors(false) {
-    // Register built-in functions
+    // funciones builtin
     FunctionSymbol printlnFunc;
     printlnFunc.name = "println";
     printlnFunc.returnType = DataType::VOID;
-    printlnFunc.paramTypes.push_back(DataType::INT); // Accept any int-like value
+    printlnFunc.paramTypes.push_back(DataType::INT);
     symbolTable.declareFunction("println", printlnFunc);
 
-    // Register printf for C compatibility
     FunctionSymbol printfFunc;
     printfFunc.name = "printf";
     printfFunc.returnType = DataType::INT;
-    printfFunc.paramTypes.push_back(DataType::STRING); // Format string
-    printfFunc.paramTypes.push_back(DataType::INT);    // Variable args (simplified)
+    printfFunc.paramTypes.push_back(DataType::STRING);
+    printfFunc.paramTypes.push_back(DataType::INT);
     symbolTable.declareFunction("printf", printfFunc);
 }
 
@@ -27,19 +26,19 @@ void SemanticAnalyzer::error(const std::string& message) {
 bool SemanticAnalyzer::areTypesCompatible(DataType expected, DataType actual) {
     if (expected == actual) return true;
 
-    // Allow INT -> LONG promotion
+    // promocion int -> long
     if (expected == DataType::LONG && actual == DataType::INT) return true;
 
-    // Allow INT/LONG -> FLOAT promotion
+    // promocion int/long -> float
     if (expected == DataType::FLOAT && (actual == DataType::INT || actual == DataType::LONG)) return true;
 
-    // Allow UINT -> LONG promotion
+    // promocion uint -> long
     if (expected == DataType::LONG && actual == DataType::UINT) return true;
 
-    // Allow INT -> UINT (for positive literals)
+    // int -> uint
     if (expected == DataType::UINT && actual == DataType::INT) return true;
 
-    // Allow UINT -> INT
+    // uint -> int
     if (expected == DataType::INT && actual == DataType::UINT) return true;
 
     return false;
@@ -48,16 +47,16 @@ bool SemanticAnalyzer::areTypesCompatible(DataType expected, DataType actual) {
 DataType SemanticAnalyzer::getCommonType(DataType t1, DataType t2) {
     if (t1 == t2) return t1;
 
-    // Float dominates
+    // float domina
     if (t1 == DataType::FLOAT || t2 == DataType::FLOAT) return DataType::FLOAT;
 
-    // Long dominates over Int
+    // long domina sobre int
     if (t1 == DataType::LONG || t2 == DataType::LONG) return DataType::LONG;
 
-    // UINT with INT/LONG
+    // uint con int/long
     if ((t1 == DataType::UINT && t2 == DataType::INT) ||
         (t1 == DataType::INT && t2 == DataType::UINT)) {
-        return DataType::LONG; // Promote to signed long
+        return DataType::LONG;
     }
 
     return t1;
@@ -70,19 +69,19 @@ void SemanticAnalyzer::visit(BinaryExpr* node) {
     DataType leftType = node->left->exprType;
     DataType rightType = node->right->exprType;
 
-    // Arithmetic operators
+    // operadores aritmeticos
     if (node->op == "+" || node->op == "-" || node->op == "*" ||
         node->op == "/" || node->op == "%") {
         node->exprType = getCommonType(leftType, rightType);
     }
-    // Relational operators
+    // operadores relacionales
     else if (node->op == "<" || node->op == ">" || node->op == "<=" ||
              node->op == ">=" || node->op == "==" || node->op == "!=") {
-        node->exprType = DataType::INT; // Boolean result (represented as int)
+        node->exprType = DataType::INT;
     }
-    // Logical operators
+    // operadores logicos
     else if (node->op == "&&" || node->op == "||") {
-        node->exprType = DataType::INT; // Boolean result
+        node->exprType = DataType::INT;
     }
 }
 
@@ -100,7 +99,6 @@ void SemanticAnalyzer::visit(TernaryExpr* node) {
 }
 
 void SemanticAnalyzer::visit(LiteralExpr* node) {
-    // Type already set in constructor
 }
 
 void SemanticAnalyzer::visit(IdentifierExpr* node) {
@@ -123,7 +121,6 @@ void SemanticAnalyzer::visit(ArrayAccessExpr* node) {
         }
     }
 
-    // For arrays, the type is the element type
     if (auto id = dynamic_cast<IdentifierExpr*>(node->array.get())) {
         Symbol* sym = symbolTable.lookup(id->name);
         if (sym) {
@@ -140,7 +137,6 @@ void SemanticAnalyzer::visit(CallExpr* node) {
         return;
     }
 
-    // printf is variadic, skip strict argument count check
     bool isVariadic = (node->name == "printf");
 
     if (!isVariadic && func->paramTypes.size() != node->args.size()) {
@@ -151,7 +147,6 @@ void SemanticAnalyzer::visit(CallExpr* node) {
 
     for (size_t i = 0; i < node->args.size(); ++i) {
         node->args[i]->accept(this);
-        // For variadic functions, only check first argument (format string)
         if (!isVariadic && i < func->paramTypes.size()) {
             if (!areTypesCompatible(func->paramTypes[i], node->args[i]->exprType)) {
                 error("Type mismatch in argument " + std::to_string(i + 1) +
@@ -177,8 +172,7 @@ void SemanticAnalyzer::visit(VarDeclStmt* node) {
     sym.isMutable = node->isMutable;
     sym.arrayDimensions = node->arrayDimensions;
 
-    // Calculate size for stack allocation
-    int size = 8; // Base size for all types in x86-64
+    int size = 8;
     if (!node->arrayDimensions.empty()) {
         for (int dim : node->arrayDimensions) {
             if (dim > 0) size *= dim;
@@ -224,7 +218,6 @@ void SemanticAnalyzer::visit(WhileStmt* node) {
 void SemanticAnalyzer::visit(ForStmt* node) {
     symbolTable.enterScope();
 
-    // Declare loop variable
     Symbol loopVar;
     loopVar.name = node->varName;
     loopVar.type = DataType::INT;
@@ -259,7 +252,6 @@ void SemanticAnalyzer::visit(ReturnStmt* node) {
 }
 
 void SemanticAnalyzer::visit(FunctionDecl* node) {
-    // Register function in symbol table
     FunctionSymbol funcSym;
     funcSym.name = node->name;
     funcSym.returnType = node->returnType;
@@ -273,13 +265,11 @@ void SemanticAnalyzer::visit(FunctionDecl* node) {
         error("Function already declared: " + node->name);
     }
 
-    // Enter function scope
     symbolTable.enterScope();
     symbolTable.resetOffset();
     currentFunctionReturnType = node->returnType;
 
-    // Declare parameters
-    int paramOffset = 16; // Start after saved rbp and return address
+    int paramOffset = 16;
     for (auto& param : node->params) {
         Symbol paramSym;
         paramSym.name = param.name;
@@ -293,7 +283,6 @@ void SemanticAnalyzer::visit(FunctionDecl* node) {
         symbolTable.declareVariable(param.name, paramSym);
     }
 
-    // Analyze function body
     node->body->accept(this);
 
     symbolTable.exitScope();
@@ -304,7 +293,6 @@ void SemanticAnalyzer::visit(Program* node) {
         func->accept(this);
     }
 
-    // Check that main function exists
     if (!symbolTable.lookupFunction("main")) {
         error("No main function defined");
     }

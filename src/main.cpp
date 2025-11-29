@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
     std::string inputFile = argv[1];
     std::string outputFile = "output.s";
 
-    // Parse command line options
+    // opciones de linea de comandos
     for (int i = 2; i < argc; ++i) {
         std::string arg = argv[i];
         if (arg == "-o" && i + 1 < argc) {
@@ -42,25 +42,25 @@ int main(int argc, char* argv[]) {
     }
 
     try {
-        // Read source file
+        // leer archivo fuente
         std::cout << "Reading source file: " << inputFile << std::endl;
         std::string source = readFile(inputFile);
 
-        // Lexical analysis
+        // analisis lexico
         std::cout << "Performing lexical analysis..." << std::endl;
         Scanner scanner(source);
         std::vector<Token> tokens = scanner.tokenize();
 
         std::cout << "Tokens generated: " << tokens.size() << std::endl;
 
-        // Syntax analysis
+        // analisis sintactico
         std::cout << "Performing syntax analysis..." << std::endl;
         Parser parser(tokens);
         auto program = parser.parse();
 
         std::cout << "Syntax analysis completed successfully." << std::endl;
 
-        // Semantic analysis
+        // analisis semantico
         std::cout << "Performing semantic analysis..." << std::endl;
         SymbolTable symbolTable;
         SemanticAnalyzer semantic(symbolTable);
@@ -73,16 +73,16 @@ int main(int argc, char* argv[]) {
 
         std::cout << "Semantic analysis completed successfully." << std::endl;
 
-        // Code generation
+        // generacion de codigo
         std::cout << "Generating x86-64 assembly code..." << std::endl;
-        SymbolTable codegenSymbolTable; // Fresh symbol table for code generation
+        SymbolTable codegenSymbolTable;
         CodeGenerator codegen(codegenSymbolTable);
-        codegen.enableOptimizations(true, true); // Enable optimizations
+        codegen.enableOptimizations(true, true);
         program->accept(&codegen);
 
         std::string assemblyCode = codegen.getCode();
 
-        // Write output
+        // escribir salida
         std::cout << "Writing assembly to: " << outputFile << std::endl;
         writeFile(outputFile, assemblyCode);
 
