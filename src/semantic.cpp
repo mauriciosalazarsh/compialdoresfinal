@@ -3,7 +3,6 @@
 
 SemanticAnalyzer::SemanticAnalyzer(SymbolTable& symTable)
     : symbolTable(symTable), currentFunctionReturnType(DataType::VOID), hasErrors(false) {
-    // funciones builtin
     FunctionSymbol printlnFunc;
     printlnFunc.name = "println";
     printlnFunc.returnType = DataType::VOID;
@@ -47,13 +46,10 @@ bool SemanticAnalyzer::areTypesCompatible(DataType expected, DataType actual) {
 DataType SemanticAnalyzer::getCommonType(DataType t1, DataType t2) {
     if (t1 == t2) return t1;
 
-    // float domina
     if (t1 == DataType::FLOAT || t2 == DataType::FLOAT) return DataType::FLOAT;
 
-    // long domina sobre int
     if (t1 == DataType::LONG || t2 == DataType::LONG) return DataType::LONG;
 
-    // uint con int/long
     if ((t1 == DataType::UINT && t2 == DataType::INT) ||
         (t1 == DataType::INT && t2 == DataType::UINT)) {
         return DataType::LONG;

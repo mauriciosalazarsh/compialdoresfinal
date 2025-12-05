@@ -340,6 +340,13 @@ header p {
     color: #333;
 }
 
+.stack-offset {
+    color: #d32f2f;
+    font-weight: bold;
+    margin-left: 5px;
+    font-size: 0.9em;
+}
+
 .output-view {
     background: #1a1a2e;
     border-radius: 4px;

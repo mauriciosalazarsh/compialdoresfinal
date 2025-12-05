@@ -55,7 +55,7 @@ DataType Parser::parseType() {
         std::string typeName = peek().lexeme;
         auto it = typeAliases.find(typeName);
         if (it != typeAliases.end()) {
-            advance(); // consume the alias name
+            advance(); 
             return it->second;
         }
     }

@@ -273,8 +273,9 @@ async function resetSimulator() {
 // Update UI with current state
 function updateUI(state) {
     // Update current instruction
-    const instrLine = state.current_instruction;
-    instrCounter.textContent = instrLine + 1;
+    // Use the original line number from the simulator if available, otherwise fallback
+    const instrLine = state.current_line_number !== undefined ? state.current_line_number : state.current_instruction;
+    instrCounter.textContent = (state.current_instruction + 1);
 
     // Highlight current instruction in assembly
     document.querySelectorAll('.assembly-pre .line').forEach((line, index) => {
@@ -307,14 +308,14 @@ function updateUI(state) {
 // Update Registers Display
 function updateRegisters(registers) {
     const importantRegs = ['rax', 'rbx', 'rcx', 'rdx', 'rsi', 'rdi', 'rbp', 'rsp',
-                          'r8', 'r9', 'r10', 'r11', 'r12', 'r13', 'r14', 'r15'];
+        'r8', 'r9', 'r10', 'r11', 'r12', 'r13', 'r14', 'r15'];
 
     let html = '';
 
     importantRegs.forEach(reg => {
         const value = registers[reg] || '0x0';
         const changed = previousState &&
-                       previousState.registers[reg] !== value;
+            previousState.registers[reg] !== value;
 
         html += `
             <div class="register ${changed ? 'changed' : ''}">
@@ -364,8 +365,13 @@ function updateStack(stack) {
 
         html += `
             <div class="stack-item ${classes.join(' ')}">
-                <div class="stack-address">${item.address}${marker}</div>
-                <div class="stack-value">${typeof item.value === 'number' ? '0x' + item.value.toString(16) : item.value}</div>
+                <div class="stack-address">
+                    ${item.rbp_offset !== null ? `<span class="stack-offset">${item.rbp_offset}</span>` : item.address}
+                    ${marker}
+                </div>
+                <div class="stack-value">
+                    ${item.value}
+                </div>
             </div>
         `;
     });

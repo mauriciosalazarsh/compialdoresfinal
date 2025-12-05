@@ -1,7 +1,7 @@
 #include "../include/symboltable.h"
 
 SymbolTable::SymbolTable() : currentOffset(0) {
-    enterScope(); // Global scope
+    enterScope(); 
 }
 
 void SymbolTable::enterScope() {
@@ -19,7 +19,7 @@ bool SymbolTable::declareVariable(const std::string& name, const Symbol& symbol)
 
     auto& currentScope = scopes.back();
     if (currentScope.find(name) != currentScope.end()) {
-        return false; // Already declared in this scope
+        return false; 
     }
 
     currentScope[name] = symbol;
@@ -38,7 +38,7 @@ Symbol* SymbolTable::lookup(const std::string& name) {
 
 bool SymbolTable::declareFunction(const std::string& name, const FunctionSymbol& func) {
     if (functions.find(name) != functions.end()) {
-        return false; // Already declared
+        return false; 
     }
     functions[name] = func;
     return true;

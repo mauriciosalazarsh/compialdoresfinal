@@ -212,7 +212,7 @@ python3 server.py
 1. Scanner: tokenizacion del codigo fuente
 2. Parser: construccion del AST (parser recursivo descendente)
 3. Semantic Analyzer: verificacion de tipos, tabla de simbolos
-4. Code Generator: generacion de codigo x86-64 (sintaxis Intel, System V ABI)
+4. Code Generator: generacion de codigo x86-64 (sintaxis AT&T, System V ABI)
 
 ## Convenciones x86-64
 

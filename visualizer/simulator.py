@@ -1,5 +1,5 @@
 """
-X86-64 Assembly Simulator
+X86-64 Assembly Simulator (AT&T Syntax)
 Simulates execution of x86-64 assembly instructions step by step
 """
 
@@ -40,6 +40,7 @@ class X86Simulator:
 
         # Instructions list
         self.instructions = []
+        self.instruction_lines = []  # Map instruction index to original line number
         self.current_instruction = 0
 
         # Execution history for stepping backward
@@ -58,22 +59,23 @@ class X86Simulator:
         """Load assembly code and parse it"""
         lines = assembly_code.strip().split('\n')
         self.instructions = []
+        self.instruction_lines = []
         self.labels = {}
         in_data_section = False
         instruction_index = 0
 
-        for line in lines:
+        for original_line_index, line in enumerate(lines):
             line = line.strip()
 
             # Skip empty lines and comments
-            if not line or line.startswith('#') or line.startswith(';'):
+            if not line or line.isspace() or line.startswith('#') or line.startswith(';'):
                 continue
 
             # Check for section directives
             if '.data' in line:
                 in_data_section = True
                 continue
-            elif '.text' in line or '.global' in line or '.intel_syntax' in line:
+            elif '.text' in line or '.global' in line or '.att_syntax' in line or '.section' in line:
                 in_data_section = False
                 continue
 
@@ -95,6 +97,7 @@ class X86Simulator:
 
             # Store instruction
             self.instructions.append(line)
+            self.instruction_lines.append(original_line_index)
             instruction_index += 1
 
         # Start at main if it exists, otherwise start at 0
@@ -130,8 +133,13 @@ class X86Simulator:
         self.output = state['output']
         return True
 
-    def get_register_64(self, reg: str) -> str:
-        """Convert 32-bit register name to 64-bit equivalent"""
+    def parse_register(self, reg: str) -> str:
+        """Parse AT&T register (remove % prefix) and normalize to 64-bit"""
+        reg = reg.strip()
+        if reg.startswith('%'):
+            reg = reg[1:]
+
+        # Convert 32-bit to 64-bit
         reg32_to_64 = {
             'eax': 'rax', 'ebx': 'rbx', 'ecx': 'rcx', 'edx': 'rdx',
             'esi': 'rsi', 'edi': 'rdi', 'ebp': 'rbp', 'esp': 'rsp',
@@ -143,106 +151,132 @@ class X86Simulator:
         }
         return reg32_to_64.get(reg, reg)
 
+    def parse_immediate(self, imm: str) -> int:
+        """Parse AT&T immediate value (remove $ prefix)"""
+        imm = imm.strip()
+        if imm.startswith('$'):
+            imm = imm[1:]
+        return int(imm)
+
+    def get_address(self, operand: str) -> int:
+        """Parse memory operand and return the address"""
+        operand = operand.strip()
+        match = re.match(r'(-?\d+)?\(%(\w+)\)', operand)
+        if match:
+            offset_str, reg = match.groups()
+            offset = int(offset_str) if offset_str else 0
+            reg = self.parse_register('%' + reg)
+            return self.registers.get(reg, 0) + offset
+        return 0
+
     def get_value(self, operand: str) -> int:
-        """Get value from operand (register, memory, or immediate)"""
+        """Get value from operand (register, memory, or immediate) - AT&T syntax"""
         operand = operand.strip()
 
-        # Immediate value
-        if operand.isdigit() or (operand.startswith('-') and operand[1:].isdigit()):
+        # Immediate value with $ prefix
+        if operand.startswith('$'):
+            return self.parse_immediate(operand)
+
+        # Register with % prefix
+        if operand.startswith('%'):
+            reg = self.parse_register(operand)
+            if reg in self.registers:
+                return self.registers[reg]
+            return 0
+
+        # Memory reference: offset(%reg) or (%reg)
+        # Pattern: optional_offset(%reg)
+        match = re.match(r'(-?\d+)?\(%(\w+)\)', operand)
+        if match:
+            offset_str, reg = match.groups()
+            offset = int(offset_str) if offset_str else 0
+            reg = self.parse_register('%' + reg)
+            addr = self.registers.get(reg, 0) + offset
+            return self.stack.get(addr, 0)
+
+        # Label with RIP-relative: label(%rip)
+        match = re.match(r'([.\w]+)\(%rip\)', operand)
+        if match:
+            label = match.group(1)
+            return 0  # Placeholder for data section
+
+        # Plain number (shouldn't happen in AT&T but handle it)
+        if operand.lstrip('-').isdigit():
             return int(operand)
-
-        # Register (handle 32-bit and 64-bit)
-        reg64 = self.get_register_64(operand)
-        if reg64 in self.registers:
-            return self.registers[reg64]
-
-        # Original check for direct register name
-        if operand in self.registers:
-            return self.registers[operand]
-
-        # Memory reference [reg + offset]
-        if '[' in operand:
-            match = re.match(r'\[(\w+)\s*([+-])\s*(\d+)\]', operand)
-            if match:
-                reg, op, offset = match.groups()
-                reg64 = self.get_register_64(reg)
-                addr = self.registers.get(reg64, 0)
-                offset_val = int(offset)
-                if op == '-':
-                    addr -= offset_val
-                else:
-                    addr += offset_val
-                return self.stack.get(addr, 0)
-
-            # Simple memory reference [reg]
-            match = re.match(r'\[(\w+)\]', operand)
-            if match:
-                reg = match.group(1)
-                reg64 = self.get_register_64(reg)
-                addr = self.registers.get(reg64, 0)
-                return self.stack.get(addr, 0)
-
-        # Label reference
-        if operand in self.data_section:
-            return 0  # Placeholder for data section address
 
         return 0
 
-    def set_value(self, operand: str, value: int):
-        """Set value to operand (register or memory)"""
+    def set_value(self, operand: str, value):
+        """Set value to operand (register or memory) - AT&T syntax"""
         operand = operand.strip()
 
-        # Register (handle 32-bit and 64-bit)
-        reg64 = self.get_register_64(operand)
-        if reg64 in self.registers:
-            # For 32-bit registers, zero-extend to 64-bit
-            if operand != reg64:
-                value = value & 0xFFFFFFFF
-            self.registers[reg64] = value & 0xFFFFFFFFFFFFFFFF
-            return
-
-        # Original check for direct register name
-        if operand in self.registers:
-            self.registers[operand] = value & 0xFFFFFFFFFFFFFFFF  # 64-bit mask
-            return
-
-        # Memory reference
-        if '[' in operand:
-            match = re.match(r'\[(\w+)\s*([+-])\s*(\d+)\]', operand)
-            if match:
-                reg, op, offset = match.groups()
-                reg64 = self.get_register_64(reg)
-                addr = self.registers.get(reg64, 0)
-                offset_val = int(offset)
-                if op == '-':
-                    addr -= offset_val
-                else:
-                    addr += offset_val
-                self.stack[addr] = value
+        # Register with % prefix
+        if operand.startswith('%'):
+            reg = self.parse_register(operand)
+            if reg in self.registers:
+                # Handle float values (preserve them for simulation)
+                if isinstance(value, float):
+                    self.registers[reg] = value
+                    return
+                # For 32-bit registers, zero-extend
+                if operand[1:] != reg and not operand[1:].startswith('r'):
+                    value = value & 0xFFFFFFFF
+                self.registers[reg] = value & 0xFFFFFFFFFFFFFFFF
                 return
 
-            # Simple memory reference
-            match = re.match(r'\[(\w+)\]', operand)
-            if match:
-                reg = match.group(1)
-                reg64 = self.get_register_64(reg)
-                addr = self.registers.get(reg64, 0)
-                self.stack[addr] = value
-                return
+        # Memory reference: offset(%reg) or (%reg)
+        match = re.match(r'(-?\d+)?\(%(\w+)\)', operand)
+        if match:
+            offset_str, reg = match.groups()
+            offset = int(offset_str) if offset_str else 0
+            reg = self.parse_register('%' + reg)
+            addr = self.registers.get(reg, 0) + offset
+            self.stack[addr] = value
+            return
+
+    def strip_suffix(self, opcode: str) -> str:
+        """Remove size suffix from opcode (q, l, w, b)"""
+        if opcode and opcode[-1] in 'qlwb' and len(opcode) > 1:
+            # Don't strip if it's part of the instruction name
+            base = opcode[:-1]
+            if base in ['mov', 'add', 'sub', 'imul', 'idiv', 'push', 'pop',
+                       'cmp', 'test', 'xor', 'and', 'or', 'lea', 'inc', 'dec',
+                       'neg', 'movzb', 'call', 'ret', 'jmp', 'cqt']:
+                return base
+        return opcode
 
     def execute_instruction(self, instruction: str) -> bool:
-        """Execute a single instruction. Returns False if execution should stop."""
+        """Execute a single instruction (AT&T syntax). Returns False if execution should stop."""
         parts = instruction.split(None, 1)
         if not parts:
             return True
 
-        opcode = parts[0].lower()
-        operands = parts[1].split(',') if len(parts) > 1 else []
-        operands = [op.strip() for op in operands]
+        opcode = self.strip_suffix(parts[0].lower())
+        operands_str = parts[1] if len(parts) > 1 else ''
 
-        # MOV instruction
-        if opcode == 'mov':
-            dest, src = operands[0], operands[1]
+        # Parse operands (handle commas inside parentheses)
+        operands = []
+        if operands_str:
+            # Split by comma but not inside parentheses
+            depth = 0
+            current = ''
+            for char in operands_str:
+                if char == '(':
+                    depth += 1
+                elif char == ')':
+                    depth -= 1
+                elif char == ',' and depth == 0:
+                    operands.append(current.strip())
+                    current = ''
+                    continue
+                current += char
+            if current.strip():
+                operands.append(current.strip())
+
+        # AT&T syntax: src, dest (opposite of Intel)
+        # MOV instruction (skip if xmm registers involved - handled in SSE section)
+        if opcode == 'mov' and '%xmm' not in operands_str:
+            src, dest = operands[0], operands[1]
             value = self.get_value(src)
             self.set_value(dest, value)
 
@@ -258,28 +292,31 @@ class X86Simulator:
             self.set_value(operands[0], value)
             self.registers['rsp'] += 8
 
-        # Arithmetic instructions
+        # ADD instruction (AT&T: src, dest -> dest = dest + src)
         elif opcode == 'add':
-            dest, src = operands[0], operands[1]
+            src, dest = operands[0], operands[1]
             val1 = self.get_value(dest)
             val2 = self.get_value(src)
             result = val1 + val2
             self.set_value(dest, result)
 
+        # SUB instruction (AT&T: src, dest -> dest = dest - src)
         elif opcode == 'sub':
-            dest, src = operands[0], operands[1]
+            src, dest = operands[0], operands[1]
             val1 = self.get_value(dest)
             val2 = self.get_value(src)
             result = val1 - val2
             self.set_value(dest, result)
 
+        # IMUL instruction (AT&T: src, dest -> dest = dest * src)
         elif opcode == 'imul':
-            dest, src = operands[0], operands[1]
+            src, dest = operands[0], operands[1]
             val1 = self.get_value(dest)
             val2 = self.get_value(src)
             result = val1 * val2
             self.set_value(dest, result)
 
+        # IDIV instruction
         elif opcode == 'idiv':
             divisor = self.get_value(operands[0])
             if divisor != 0:
@@ -287,30 +324,36 @@ class X86Simulator:
                 self.registers['rax'] = dividend // divisor
                 self.registers['rdx'] = dividend % divisor
 
+        # INC instruction
         elif opcode == 'inc':
             val = self.get_value(operands[0])
             self.set_value(operands[0], val + 1)
 
+        # DEC instruction
         elif opcode == 'dec':
             val = self.get_value(operands[0])
             self.set_value(operands[0], val - 1)
 
+        # NEG instruction
         elif opcode == 'neg':
             val = self.get_value(operands[0])
             self.set_value(operands[0], -val)
 
-        # Comparison and test
+        # CMP instruction (AT&T: src, dest -> compares dest - src)
         elif opcode == 'cmp':
-            val1 = self.get_value(operands[0])
-            val2 = self.get_value(operands[1])
+            src, dest = operands[0], operands[1]
+            val1 = self.get_value(dest)
+            val2 = self.get_value(src)
             result = val1 - val2
             self.flags['ZF'] = 1 if result == 0 else 0
             self.flags['SF'] = 1 if result < 0 else 0
             self.flags['CF'] = 1 if val1 < val2 else 0
 
+        # TEST instruction
         elif opcode == 'test':
-            val1 = self.get_value(operands[0])
-            val2 = self.get_value(operands[1])
+            src, dest = operands[0], operands[1]
+            val1 = self.get_value(dest)
+            val2 = self.get_value(src)
             result = val1 & val2
             self.flags['ZF'] = 1 if result == 0 else 0
             self.flags['SF'] = 1 if result < 0 else 0
@@ -336,7 +379,7 @@ class X86Simulator:
                 should_jump = self.flags['SF'] == self.flags['OF']
 
             if should_jump and label in self.labels:
-                self.current_instruction = self.labels[label] - 1  # -1 because we'll increment
+                self.current_instruction = self.labels[label] - 1
 
         # CALL instruction
         elif opcode == 'call':
@@ -347,16 +390,22 @@ class X86Simulator:
             self.call_stack.append(label)
 
             # Capture printf output
-            if label == 'printf':
-                # rdi = format string, rsi = first arg (for %d)
-                value = self.registers.get('rsi', 0)
-                # Handle signed 64-bit values (convert from unsigned representation)
-                if value > 0x7FFFFFFFFFFFFFFF:
-                    value = value - 0x10000000000000000
-                # Also handle 32-bit signed values
-                elif value > 0x7FFFFFFF and value <= 0xFFFFFFFF:
-                    value = value - 0x100000000
-                self.output.append(str(value))
+            # Capture printf output
+            if label == 'printf' or label == 'printf@PLT':
+                # Check if float (num vector args in %eax)
+                num_vector_args = self.registers.get('rax', 0)
+                
+                if num_vector_args >= 1:
+                     value = self.xmm_registers.get('xmm0', 0.0)
+                     self.output.append(f"{value:.6f}")
+                else:
+                    value = self.registers.get('rsi', 0)
+                    # Handle signed 64-bit values
+                    if value > 0x7FFFFFFFFFFFFFFF:
+                        value = value - 0x10000000000000000
+                    elif value > 0x7FFFFFFF and value <= 0xFFFFFFFF:
+                        value = value - 0x100000000
+                    self.output.append(str(value))
 
             if label in self.labels:
                 self.current_instruction = self.labels[label] - 1
@@ -365,37 +414,34 @@ class X86Simulator:
         elif opcode == 'ret':
             if self.call_stack:
                 self.call_stack.pop()
-            # Pop return address
             return_addr = self.stack.get(self.registers['rsp'], 0)
             self.registers['rsp'] += 8
-            if return_addr == 0:  # Return from main
+            if return_addr == 0:
                 return False
             self.current_instruction = return_addr - 1
 
-        # LEA instruction
+        # LEAVE instruction
+        elif opcode == 'leave':
+            # mov %rbp, %rsp
+            self.registers['rsp'] = self.registers['rbp']
+            # pop %rbp
+            self.registers['rbp'] = self.stack.get(self.registers['rsp'], 0)
+            self.registers['rsp'] += 8
+
+        # LEA instruction (AT&T: src, dest)
         elif opcode == 'lea':
-            dest = operands[0]
-            src = operands[1]
-            # Handle lea with label reference like [.STR0] or [int_fmt]
-            if '[' in src:
-                # Check for label reference [.LABEL] or [label]
-                label_match = re.match(r'\[\.?(\w+)\]', src)
-                if label_match:
-                    # Just set a placeholder address for string labels
-                    self.set_value(dest, 0x1000)  # Fake address for strings
-                else:
-                    # Handle [reg +/- offset]
-                    match = re.match(r'\[(\w+)\s*([+-])\s*(\d+)\]', src)
-                    if match:
-                        reg, op, offset = match.groups()
-                        reg64 = self.get_register_64(reg)
-                        addr = self.registers.get(reg64, 0)
-                        offset_val = int(offset)
-                        if op == '-':
-                            addr -= offset_val
-                        else:
-                            addr += offset_val
-                        self.set_value(dest, addr)
+            src, dest = operands[0], operands[1]
+            # Handle offset(%reg)
+            match = re.match(r'(-?\d+)?\(%(\w+)\)', src)
+            if match:
+                offset_str, reg = match.groups()
+                offset = int(offset_str) if offset_str else 0
+                reg = self.parse_register('%' + reg)
+                addr = self.registers.get(reg, 0) + offset
+                self.set_value(dest, addr)
+            # Handle label(%rip)
+            elif '(%rip)' in src:
+                self.set_value(dest, 0x1000)  # Fake address for strings
 
         # Set instructions
         elif opcode in ['setl', 'setle', 'setg', 'setge', 'sete', 'setne', 'setz']:
@@ -415,50 +461,113 @@ class X86Simulator:
             elif opcode == 'setne':
                 result = 1 if self.flags['ZF'] == 0 else 0
 
-            # Set only the lower byte
             self.set_value(dest, result)
 
-        # MOVZX - move with zero extension
-        elif opcode == 'movzx':
-            dest, src = operands[0], operands[1]
-            value = self.get_value(src) & 0xFF  # Get lower byte
+        # MOVZB - move with zero extension (AT&T: movzbq %al, %rax)
+        elif opcode == 'movzb':
+            src, dest = operands[0], operands[1]
+            value = self.get_value(src) & 0xFF
             self.set_value(dest, value)
 
-        # CDQ/CQO - sign extension
-        elif opcode in ['cdq', 'cqo', 'cdqe']:
+        # CQT/CQTO - sign extension (AT&T name for cqo)
+        elif opcode in ['cqt', 'cqto', 'cltq']:
             if self.registers['rax'] < 0:
                 self.registers['rdx'] = -1
             else:
                 self.registers['rdx'] = 0
 
-        # XOR instruction
+        # XOR instruction (AT&T: src, dest)
         elif opcode == 'xor':
-            dest, src = operands[0], operands[1]
+            src, dest = operands[0], operands[1]
             val1 = self.get_value(dest)
             val2 = self.get_value(src)
             result = val1 ^ val2
             self.set_value(dest, result)
+            self.flags['ZF'] = 1 if result == 0 else 0
 
-        # AND instruction
+        # AND instruction (AT&T: src, dest)
         elif opcode == 'and':
-            dest, src = operands[0], operands[1]
+            src, dest = operands[0], operands[1]
             val1 = self.get_value(dest)
             val2 = self.get_value(src)
             result = val1 & val2
             self.set_value(dest, result)
 
-        # OR instruction
+        # OR instruction (AT&T: src, dest)
         elif opcode == 'or':
-            dest, src = operands[0], operands[1]
+            src, dest = operands[0], operands[1]
             val1 = self.get_value(dest)
             val2 = self.get_value(src)
             result = val1 | val2
             self.set_value(dest, result)
 
         # SSE instructions (simplified)
-        elif opcode.startswith('movsd') or opcode.startswith('movq'):
-            # Simplified floating point handling
-            pass
+        elif opcode.startswith('movsd') or (opcode in ['mov', 'movq'] and '%xmm' in operands_str):
+            src, dest = operands[0], operands[1]
+            val = 0.0
+
+            # Get source value
+            if '%xmm' in src:
+                reg = src.replace('%', '')
+                val = self.xmm_registers.get(reg, 0.0)
+            elif '(%rip)' in src:
+                # Load from data section
+                label = src.split('(')[0]
+                if label in self.data_section:
+                    data_str = self.data_section[label]
+                    if '.double' in data_str:
+                        try:
+                            val = float(data_str.replace('.double', '').strip())
+                        except:
+                            pass
+                    elif '.long' in data_str or '.int' in data_str:
+                         try:
+                            val = float(data_str.replace('.long', '').replace('.int', '').strip())
+                         except:
+                            pass
+            elif src.startswith('$'):
+                # Immediate
+                try:
+                    val = float(src.replace('$', ''))
+                except:
+                    pass
+            elif re.match(r'-?\d+\(%\w+\)', src):
+                # Memory reference like -8(%rbp)
+                addr = self.get_address(src)
+                val = self.stack.get(addr, 0.0)
+            elif '%' in src: # GPR
+                reg = self.parse_register(src)
+                val = self.registers.get(reg, 0)
+
+            # Store to dest
+            if '%xmm' in dest:
+                reg = dest.replace('%', '')
+                self.xmm_registers[reg] = float(val) if not isinstance(val, float) else val
+            elif re.match(r'-?\d+\(%\w+\)', dest):
+                # Memory reference like -8(%rbp)
+                addr = self.get_address(dest)
+                self.stack[addr] = val
+            elif '%' in dest: # GPR - preserve float value for simulation purposes
+                reg = self.parse_register(dest)
+                self.registers[reg] = val
+
+        elif opcode in ['addsd', 'subsd', 'mulsd', 'divsd']:
+            src, dest = operands[0], operands[1]
+            src_reg = src.replace('%', '')
+            dest_reg = dest.replace('%', '')
+
+            val1 = self.xmm_registers.get(dest_reg, 0.0)
+            val2 = self.xmm_registers.get(src_reg, 0.0)
+
+            if opcode == 'addsd':
+                self.xmm_registers[dest_reg] = val1 + val2
+            elif opcode == 'subsd':
+                self.xmm_registers[dest_reg] = val1 - val2
+            elif opcode == 'mulsd':
+                self.xmm_registers[dest_reg] = val1 * val2
+            elif opcode == 'divsd':
+                if val2 != 0:
+                    self.xmm_registers[dest_reg] = val1 / val2
 
         return True
 
@@ -491,14 +600,14 @@ class X86Simulator:
 
     def get_state(self) -> Dict[str, Any]:
         """Get current execution state for visualization"""
-        # Get stack contents
         stack_view = []
         for addr in sorted(self.stack.keys(), reverse=True):
             stack_view.append({
                 'address': hex(addr),
                 'value': self.stack[addr],
                 'is_rbp': addr == self.registers['rbp'],
-                'is_rsp': addr == self.registers['rsp']
+                'is_rsp': addr == self.registers['rsp'],
+                'rbp_offset': addr - self.registers['rbp'] if self.registers['rbp'] != 0 else None
             })
 
         return {
@@ -507,6 +616,7 @@ class X86Simulator:
             'flags': self.flags,
             'stack': stack_view,
             'current_instruction': self.current_instruction,
+            'current_line_number': self.instruction_lines[self.current_instruction] if self.current_instruction < len(self.instructions) else -1,
             'instruction': self.instructions[self.current_instruction] if self.current_instruction < len(self.instructions) else 'END',
             'call_stack': self.call_stack,
             'can_step_back': len(self.history) > 0,

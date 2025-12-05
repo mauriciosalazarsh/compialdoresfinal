@@ -99,16 +99,15 @@ public:
     void accept(Visitor* visitor) override;
 };
 
-// Statements
 class Stmt : public ASTNode {};
 
 class VarDeclStmt : public Stmt {
 public:
-    bool isMutable; // var vs val
+    bool isMutable; 
     std::string name;
     DataType type;
     std::unique_ptr<Expr> initializer;
-    std::vector<int> arrayDimensions; // For multidimensional arrays
+    std::vector<int> arrayDimensions; 
 
     VarDeclStmt(bool mut, const std::string& n, DataType t, std::unique_ptr<Expr> init)
         : isMutable(mut), name(n), type(t), initializer(std::move(init)) {}

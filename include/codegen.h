@@ -24,6 +24,10 @@ private:
     std::string newStringLabel();
     void emit(const std::string& instruction);
     void emitLabel(const std::string& label);
+    std::string reg(const std::string& r);
+    std::string imm(const std::string& val);
+    std::string imm(int val);
+    std::string mem(const std::string& base, int offset);
     void generatePrologue(const std::string& funcName, int stackSize);
     void generateEpilogue();
     void loadVariable(const std::string& varName, DataType type);

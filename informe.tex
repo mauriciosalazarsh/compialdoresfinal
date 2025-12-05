@@ -52,8 +52,8 @@
 
 \title{
     \vspace{-2cm}
-    \Large\textbf{Universidad de Ingeniería y Tecnología}\\[0.5cm]
-    \large Facultad de Computación\\[1cm]
+    \Large\textbf{Universidad de Ingenieria y Tecnologia}\\[0.5cm]
+    \large Facultad de Computacion\\[1cm]
     \Huge\textbf{Compilador de C a x86-64}\\[0.5cm]
     \Large Proyecto Final\\[1cm]
     \large CS3402 - Compiladores
@@ -75,29 +75,29 @@
 \tableofcontents
 \newpage
 
-\section{Introducción}
+\section{Introduccion}
 
-El presente documento describe el diseño e implementación de un compilador que traduce un subconjunto del lenguaje C a código ensamblador x86-64. El compilador fue desarrollado en C++ siguiendo una arquitectura modular que comprende las fases clásicas de compilación: análisis léxico, análisis sintáctico, análisis semántico y generación de código.
+El presente documento describe el diseno e implementacion de un compilador que traduce un subconjunto del lenguaje C a codigo ensamblador x86-64. El compilador fue desarrollado en C++ siguiendo una arquitectura modular que comprende las fases clasicas de compilacion: analisis lexico, analisis sintactico, analisis semantico y generacion de codigo.
 
 \subsection{Objetivos}
 
 \begin{itemize}
     \item Implementar un compilador funcional para un subconjunto de C
-    \item Generar código ensamblador x86-64 ejecutable
-    \item Aplicar técnicas de optimización en tiempo de compilación
-    \item Soportar tipos de datos numéricos adicionales (float, long, unsigned int)
+    \item Generar codigo ensamblador x86-64 ejecutable
+    \item Aplicar tecnicas de optimizacion en tiempo de compilacion
+    \item Soportar tipos de datos numericos adicionales (float, long, unsigned int)
     \item Implementar extensiones del lenguaje (expresiones ternarias, typedef)
 \end{itemize}
 
 \subsection{Alcance}
 
-El compilador soporta las siguientes características del lenguaje C:
+El compilador soporta las siguientes caracteristicas del lenguaje C:
 
 \begin{itemize}
-    \item Declaración de variables con tipos int, long, unsigned int y float
-    \item Operaciones aritméticas, relacionales y lógicas
+    \item Declaracion de variables con tipos int, long, unsigned int y float
+    \item Operaciones aritmeticas, relacionales y logicas
     \item Estructuras de control: if-else, while, for
-    \item Definición y llamada de funciones, incluyendo recursión
+    \item Definicion y llamada de funciones, incluyendo recursion
     \item Expresiones ternarias (operador ?:)
     \item Alias de tipos mediante typedef
 \end{itemize}
@@ -113,7 +113,7 @@ El código fuente completo, casos de prueba y scripts adicionales se encuentran 
 
 \section{Arquitectura del Compilador}
 
-El compilador sigue una arquitectura de pipeline con cuatro fases principales, cada una implementada como un módulo independiente.
+El compilador sigue una arquitectura de pipeline con cuatro fases principales, cada una implementada como un modulo independiente.
 
 \begin{figure}[H]
 \centering
@@ -123,12 +123,12 @@ El compilador sigue una arquitectura de pipeline con cuatro fases principales, c
     io/.style={rectangle, draw=black, line width=1pt, fill=green!15, text width=2.2cm, text centered, minimum height=1cm, font=\small\bfseries, rounded corners=3pt},
     myarrow/.style={-stealth, thick, line width=1pt}
 ]
-    \node[io] (source) {Código Fuente (.c)};
+    \node[io] (source) {Codigo Fuente (.c)};
     \node[block, right=of source] (scanner) {Scanner};
     \node[block, right=of scanner] (parser) {Parser};
     \node[block, right=of parser] (semantic) {Semantic};
     \node[block, right=of semantic] (codegen) {CodeGen};
-    \node[io, right=of codegen] (output) {Código x86-64 (.s)};
+    \node[io, right=of codegen] (output) {Codigo x86-64 (.s)};
 
     \draw[myarrow] (source) -- (scanner);
     \draw[myarrow] (scanner) -- (parser);
@@ -145,12 +145,12 @@ El compilador sigue una arquitectura de pipeline con cuatro fases principales, c
 Final/
 |-- src/
 |   |-- main.cpp          # Punto de entrada
-|   |-- scanner.cpp       # Analizador léxico
-|   |-- parser.cpp        # Analizador sintáctico
-|   |-- semantic.cpp      # Analizador semántico
-|   |-- codegen.cpp       # Generador de código
+|   |-- scanner.cpp       # Analizador lexico
+|   |-- parser.cpp        # Analizador sintactico
+|   |-- semantic.cpp      # Analizador semantico
+|   |-- codegen.cpp       # Generador de codigo
 |   |-- ast.cpp           # Nodos del AST
-|   |-- symboltable.cpp   # Tabla de símbolos
+|   |-- symboltable.cpp   # Tabla de simbolos
 |-- include/
 |   |-- scanner.h
 |   |-- parser.h
@@ -163,9 +163,9 @@ Final/
 |-- visualizer/           # Bonus: visualizador web
 \end{lstlisting}
 
-\section{Análisis Léxico (Scanner)}
+\section{Analisis Lexico (Scanner)}
 
-El analizador léxico convierte el código fuente en una secuencia de tokens. Está implementado en la clase \texttt{Scanner} utilizando un enfoque de análisis carácter por carácter.
+El analizador lexico convierte el codigo fuente en una secuencia de tokens. Esta implementado en la clase \texttt{Scanner} utilizando un enfoque de analisis caracter por caracter.
 
 \subsection{Clase Scanner}
 
@@ -207,7 +207,7 @@ Palabras clave & int, long, float, unsigned, void & \texttt{int x;} \\
                & if, else, while, for, return & \texttt{if (x > 0)} \\
                & typedef & \texttt{typedef int entero;} \\
 Literales & NUM, FLOAT\_LIT, STRING\_LIT & \texttt{42}, \texttt{3.14}, \texttt{"hola"} \\
-Identificadores & ID & \texttt{variable}, \texttt{función} \\
+Identificadores & ID & \texttt{variable}, \texttt{funcion} \\
 Operadores & +, -, *, /, \%, ==, !=, <, >, <=, >= & \texttt{a + b} \\
 Delimitadores & (, ), \{, \}, [, ], ;, , & \texttt{func(a, b)} \\
 \bottomrule
@@ -215,11 +215,11 @@ Delimitadores & (, ), \{, \}, [, ], ;, , & \texttt{func(a, b)} \\
 \caption{Tipos de tokens reconocidos}
 \end{table}
 
-\subsection{Manejo de Números}
+\subsection{Manejo de Numeros}
 
-El scanner detecta automáticamente el tipo de literal numérico:
+El scanner detecta automaticamente el tipo de literal numerico:
 
-\begin{lstlisting}[style=cpp, caption=Escaneo de literales numéricos]
+\begin{lstlisting}[style=cpp, caption=Escaneo de literales numericos]
 Token Scanner::scanNumber() {
     std::string num;
     bool isFloat = false;
@@ -245,9 +245,9 @@ Token Scanner::scanNumber() {
 }
 \end{lstlisting}
 
-\section{Análisis Sintáctico (Parser)}
+\section{Analisis Sintactico (Parser)}
 
-El analizador sintáctico implementa un parser recursivo descendente que construye un Árbol de Sintaxis Abstracta (AST).
+El analizador sintactico implementa un parser recursivo descendente que construye un Arbol de Sintaxis Abstracta (AST).
 
 \subsection{Clase Parser}
 
@@ -276,9 +276,9 @@ public:
 };
 \end{lstlisting}
 
-\subsection{Jerarquía del AST}
+\subsection{Jerarquia del AST}
 
-El AST utiliza el patrón Visitor para permitir múltiples recorridos:
+El AST utiliza el patron Visitor para permitir multiples recorridos:
 
 \begin{figure}[H]
 \centering
@@ -358,7 +358,7 @@ La precedencia se implementa mediante funciones de parsing separadas:
 \centering
 \begin{tabular}{clc}
 \toprule
-\textbf{Nivel} & \textbf{Operadores} & \textbf{Función} \\
+\textbf{Nivel} & \textbf{Operadores} & \textbf{Funcion} \\
 \midrule
 1 (menor) & ?: (ternario) & \texttt{parseTernary()} \\
 2 & || & \texttt{parseLogicalOr()} \\
@@ -377,7 +377,7 @@ La precedencia se implementa mediante funciones de parsing separadas:
 
 El parser mantiene un mapa de alias de tipos:
 
-\begin{lstlisting}[style=cpp, caption=Implementación de typedef]
+\begin{lstlisting}[style=cpp, caption=Implementacion de typedef]
 void Parser::parseTypedef() {
     expect(TokenType::TYPEDEF, "Expected 'typedef'");
     DataType baseType = parseType();
@@ -404,13 +404,13 @@ bool Parser::isTypeToken() {
 }
 \end{lstlisting}
 
-\section{Análisis Semántico}
+\section{Analisis Semantico}
 
-El analizador semántico verifica la corrección del programa mediante el patrón Visitor.
+El analizador semantico verifica la correccion del programa mediante el patron Visitor.
 
 \subsection{Clase SemanticAnalyzer}
 
-\begin{lstlisting}[style=cpp, caption=Estructura del analizador semántico]
+\begin{lstlisting}[style=cpp, caption=Estructura del analizador semantico]
 class SemanticAnalyzer : public Visitor {
 private:
     SymbolTable& symbolTable;
@@ -434,9 +434,9 @@ public:
 
 \subsection{Sistema de Tipos}
 
-El compilador soporta cuatro tipos numéricos con promoción automática:
+El compilador soporta cuatro tipos numericos con promocion automatica:
 
-\begin{lstlisting}[style=cpp, caption=Promoción de tipos]
+\begin{lstlisting}[style=cpp, caption=Promocion de tipos]
 DataType SemanticAnalyzer::getCommonType(DataType t1,
                                          DataType t2) {
     if (t1 == t2) return t1;
@@ -458,11 +458,11 @@ DataType SemanticAnalyzer::getCommonType(DataType t1,
 }
 \end{lstlisting}
 
-\subsection{Tabla de Símbolos}
+\subsection{Tabla de Simbolos}
 
-La tabla de símbolos maneja ámbitos anidados mediante una pila de scopes:
+La tabla de simbolos maneja ambitos anidados mediante una pila de scopes:
 
-\begin{lstlisting}[style=cpp, caption=Estructura de la tabla de símbolos]
+\begin{lstlisting}[style=cpp, caption=Estructura de la tabla de simbolos]
 struct Symbol {
     std::string name;
     DataType type;
@@ -488,13 +488,13 @@ public:
 };
 \end{lstlisting}
 
-\section{Generación de Código}
+\section{Generacion de Codigo}
 
-El generador de código produce ensamblador x86-64 en sintaxis Intel, siguiendo la convención de llamadas System V ABI.
+El generador de codigo produce ensamblador x86-64 en sintaxis Intel, siguiendo la convencion de llamadas System V ABI.
 
 \subsection{Clase CodeGenerator}
 
-\begin{lstlisting}[style=cpp, caption=Estructura del generador de código]
+\begin{lstlisting}[style=cpp, caption=Estructura del generador de codigo]
 class CodeGenerator : public Visitor {
 private:
     SymbolTable& symbolTable;
@@ -521,7 +521,7 @@ public:
 };
 \end{lstlisting}
 
-\subsection{Convención de Llamadas (System V ABI)}
+\subsection{Convencion de Llamadas (System V ABI)}
 
 \begin{table}[H]
 \centering
@@ -575,69 +575,69 @@ xmm0-xmm1 & Operaciones de punto flotante \\
 \caption{Estructura del stack frame en x86-64}
 \end{figure}
 
-\subsection{Generación de Prólogo y Epílogo}
+\subsection{Generacion de Prologo y Epilogo}
 
-\begin{lstlisting}[style=cpp, caption=Generación del prólogo de función]
+\begin{lstlisting}[style=cpp, caption=Generacion del prologo de funcion]
 void CodeGenerator::generatePrologue(const std::string& func,
                                      int stackSize) {
     emitLabel(func);
-    emit("push rbp");
-    emit("mov rbp, rsp");
+    emit("pushq %rbp");
+    emit("movq %rsp, %rbp");
 
     // Alinear stack a 16 bytes (requerido por ABI)
     int alignedSize = ((stackSize + 15) & ~15);
     if (alignedSize > 0) {
-        emit("sub rsp, " + std::to_string(alignedSize));
+        emit("subq $" + std::to_string(alignedSize) + ", %rsp");
     }
 }
 
 void CodeGenerator::generateEpilogue() {
-    emit("mov rsp, rbp");
-    emit("pop rbp");
+    emit("movq %rbp, %rsp");
+    emit("popq %rbp");
     emit("ret");
 }
 \end{lstlisting}
 
-\subsection{Generación de Expresiones Binarias}
+\subsection{Generacion de Expresiones Binarias}
 
-\begin{lstlisting}[style=cpp, caption=Generación de operaciones aritméticas]
+\begin{lstlisting}[style=cpp, caption=Generacion de operaciones aritmeticas]
 void CodeGenerator::visit(BinaryExpr* node) {
     // Evaluar operandos
     node->left->accept(this);
-    emit("push rax");  // Guardar operando izquierdo
+    emit("pushq %rax");  // Guardar operando izquierdo
 
     node->right->accept(this);
-    emit("mov rbx, rax");  // Operando derecho en rbx
-    emit("pop rax");        // Operando izquierdo en rax
+    emit("movq %rax, %rbx");  // Operando derecho en rbx
+    emit("popq %rax");        // Operando izquierdo en rax
 
-    // Generar operación
+    // Generar operacion
     if (node->op == "+") {
-        emit("add rax, rbx");
+        emit("addq %rbx, %rax");
     } else if (node->op == "-") {
-        emit("sub rax, rbx");
+        emit("subq %rbx, %rax");
     } else if (node->op == "*") {
-        emit("imul rax, rbx");
+        emit("imulq %rbx, %rax");
     } else if (node->op == "/") {
-        emit("cqo");        // Sign extend rax to rdx:rax
-        emit("idiv rbx");   // Resultado en rax
+        emit("cqto");        // Sign extend rax to rdx:rax
+        emit("idivq %rbx");   // Resultado en rax
     } else if (node->op == "%") {
-        emit("cqo");
-        emit("idiv rbx");
-        emit("mov rax, rdx"); // Resto en rdx
+        emit("cqto");
+        emit("idivq %rbx");
+        emit("movq %rdx, %rax"); // Resto en rdx
     }
 }
 \end{lstlisting}
 
-\subsection{Generación de Expresiones Ternarias}
+\subsection{Generacion de Expresiones Ternarias}
 
-\begin{lstlisting}[style=cpp, caption=Generación del operador ternario]
+\begin{lstlisting}[style=cpp, caption=Generacion del operador ternario]
 void CodeGenerator::visit(TernaryExpr* node) {
     std::string falseLabel = newLabel();
     std::string endLabel = newLabel();
 
-    // Evaluar condición
+    // Evaluar condicion
     node->condition->accept(this);
-    emit("test rax, rax");
+    emit("testq %rax, %rax");
     emit("jz " + falseLabel);
 
     // Rama verdadera
@@ -652,15 +652,15 @@ void CodeGenerator::visit(TernaryExpr* node) {
 }
 \end{lstlisting}
 
-\subsection{Generación de Estructuras de Control}
+\subsection{Generacion de Estructuras de Control}
 
-\begin{lstlisting}[style=cpp, caption=Generación de if-else]
+\begin{lstlisting}[style=cpp, caption=Generacion de if-else]
 void CodeGenerator::visit(IfStmt* node) {
     std::string elseLabel = newLabel();
     std::string endLabel = newLabel();
 
     node->condition->accept(this);
-    emit("test rax, rax");
+    emit("testq %rax, %rax");
 
     if (node->elseBranch) {
         emit("jz " + elseLabel);
@@ -677,14 +677,14 @@ void CodeGenerator::visit(IfStmt* node) {
 }
 \end{lstlisting}
 
-\begin{lstlisting}[style=cpp, caption=Generación de bucle while]
+\begin{lstlisting}[style=cpp, caption=Generacion de bucle while]
 void CodeGenerator::visit(WhileStmt* node) {
     std::string startLabel = newLabel();
     std::string endLabel = newLabel();
 
     emitLabel(startLabel);
     node->condition->accept(this);
-    emit("test rax, rax");
+    emit("testq %rax, %rax");
     emit("jz " + endLabel);
 
     node->body->accept(this);
@@ -696,13 +696,13 @@ void CodeGenerator::visit(WhileStmt* node) {
 
 \section{Optimizaciones}
 
-El compilador implementa dos optimizaciones principales aplicadas durante la generación de código.
+El compilador implementa dos optimizaciones principales aplicadas durante la generacion de codigo.
 
 \subsection{Constant Folding (Plegado de Constantes)}
 
-Esta optimización evalúa expresiones constantes en tiempo de compilación:
+Esta optimizacion evalua expresiones constantes en tiempo de compilacion:
 
-\begin{lstlisting}[style=cpp, caption=Implementación de constant folding]
+\begin{lstlisting}[style=cpp, caption=Implementacion de constant folding]
 void CodeGenerator::visit(BinaryExpr* node) {
     if (enableConstantFolding) {
         auto leftLit = dynamic_cast<LiteralExpr*>(
@@ -726,7 +726,7 @@ void CodeGenerator::visit(BinaryExpr* node) {
                 result = leftVal / rightVal;
 
             // Emitir resultado constante directamente
-            emit("mov rax, " + std::to_string(result));
+            emit("movq $" + std::to_string(result) + ", %rax");
             return;
         }
     }
@@ -735,31 +735,31 @@ void CodeGenerator::visit(BinaryExpr* node) {
 
 \textbf{Ejemplo:}
 \begin{lstlisting}[style=c]
-int x = 5 + 10 * 2;  // Se evalúa como 25 en compilación
+int x = 5 + 10 * 2;  // Se evalua como 25 en compilacion
 \end{lstlisting}
 
-Código generado optimizado:
+Codigo generado optimizado:
 \begin{lstlisting}[style=asm]
-mov rax, 25          ; En lugar de múltiples operaciones
+movq $25, %rax          ; En lugar de multiples operaciones
 \end{lstlisting}
 
-\subsection{Dead Code Elimination (Eliminación de Código Muerto)}
+\subsection{Dead Code Elimination (Eliminacion de Codigo Muerto)}
 
-El compilador detecta y omite código que nunca se ejecutará:
+El compilador detecta y omite codigo que nunca se ejecutara:
 
-\begin{lstlisting}[style=cpp, caption=Eliminación de código muerto en if]
+\begin{lstlisting}[style=cpp, caption=Eliminacion de codigo muerto en if]
 void CodeGenerator::visit(IfStmt* node) {
-    // Verificar si la condición es constante
+    // Verificar si la condicion es constante
     if (auto lit = dynamic_cast<LiteralExpr*>(
                        node->condition.get())) {
         if (lit->value == "0") {
-            // Condición siempre falsa: solo generar else
+            // Condicion siempre falsa: solo generar else
             if (node->elseBranch) {
                 node->elseBranch->accept(this);
             }
             return;  // Omitir rama then
         } else {
-            // Condición siempre verdadera: solo generar then
+            // Condicion siempre verdadera: solo generar then
             node->thenBranch->accept(this);
             return;  // Omitir rama else
         }
@@ -770,24 +770,24 @@ void CodeGenerator::visit(IfStmt* node) {
 \textbf{Ejemplo:}
 \begin{lstlisting}[style=c]
 if (0) {
-    z = 100;  // Este código nunca se ejecuta
+    z = 100;  // Este codigo nunca se ejecuta
 }
 \end{lstlisting}
 
-El compilador no genera código para el bloque interno.
+El compilador no genera codigo para el bloque interno.
 
 \section{Extensiones Implementadas}
 
 \subsection{Expresiones Ternarias}
 
-El operador ternario \texttt{?:} permite expresiones condicionales en línea:
+El operador ternario \texttt{?:} permite expresiones condicionales en linea:
 
-\begin{lstlisting}[style=c, caption=Ejemplo de expresión ternaria]
+\begin{lstlisting}[style=c, caption=Ejemplo de expresion ternaria]
 int max = (x > y) ? x : y;
 int result = (a > b) ? ((a > c) ? a : c) : ((b > c) ? b : c);
 \end{lstlisting}
 
-La implementación en el parser:
+La implementacion en el parser:
 
 \begin{lstlisting}[style=cpp]
 std::unique_ptr<Expr> Parser::parseTernary() {
@@ -826,7 +826,7 @@ El parser mantiene un mapa \texttt{typeAliases} que asocia nombres de alias con 
 
 \section{Casos de Prueba}
 
-El compilador incluye 18 casos de prueba organizados en cuatro categorías.
+El compilador incluye 18 casos de prueba organizados en cuatro categorias.
 
 \subsection{Tests de Funciones (3 casos)}
 
@@ -834,10 +834,10 @@ El compilador incluye 18 casos de prueba organizados en cuatro categorías.
 \centering
 \begin{tabular}{llc}
 \toprule
-\textbf{Test} & \textbf{Descripción} & \textbf{Salida} \\
+\textbf{Test} & \textbf{Descripcion} & \textbf{Salida} \\
 \midrule
-test\_func1.c & Función suma simple & 15 \\
-test\_func2.c & Función cuadrado anidada & 49 \\
+test\_func1.c & Funcion suma simple & 15 \\
+test\_func2.c & Funcion cuadrado anidada & 49 \\
 test\_func3.c & Factorial recursivo & 120 \\
 \bottomrule
 \end{tabular}
@@ -858,15 +858,15 @@ int main() {
 }
 \end{lstlisting}
 
-\subsection{Tests de Implementación Base (5 casos)}
+\subsection{Tests de Implementacion Base (5 casos)}
 
 \begin{table}[H]
 \centering
 \begin{tabular}{llc}
 \toprule
-\textbf{Test} & \textbf{Descripción} & \textbf{Salida} \\
+\textbf{Test} & \textbf{Descripcion} & \textbf{Salida} \\
 \midrule
-test\_base1.c & Aritmética básica & 30, 10, 200, 2 \\
+test\_base1.c & Aritmetica basica & 30, 10, 200, 2 \\
 test\_base2.c & Sentencias if-else & 10, 1 \\
 test\_base3.c & Bucle while & 45 \\
 test\_base4.c & Bucle for & 45 \\
@@ -881,7 +881,7 @@ test\_base5.c & Expresiones complejas & 11, 16, 4 \\
 \centering
 \begin{tabular}{llc}
 \toprule
-\textbf{Test} & \textbf{Descripción} & \textbf{Salida} \\
+\textbf{Test} & \textbf{Descripcion} & \textbf{Salida} \\
 \midrule
 test\_ext1.c & Expresiones ternarias & 10, 5 \\
 test\_ext2.c & Unsigned int & 150 \\
@@ -892,13 +892,13 @@ test\_ext5.c & Typedef & 30, 1000000, 3.140000 \\
 \end{tabular}
 \end{table}
 
-\subsection{Tests de Optimización (5 casos)}
+\subsection{Tests de Optimizacion (5 casos)}
 
 \begin{table}[H]
 \centering
 \begin{tabular}{llc}
 \toprule
-\textbf{Test} & \textbf{Descripción} & \textbf{Salida} \\
+\textbf{Test} & \textbf{Descripcion} & \textbf{Salida} \\
 \midrule
 test\_opt1.c & Constant folding & 5, 50, 25 \\
 test\_opt2.c & Dead code elimination & 30 \\
@@ -909,9 +909,7 @@ test\_opt5.c & Loop optimization & 100 \\
 \end{tabular}
 \end{table}
 
-\section{Ejemplo de Código Generado}
-
-\subsection{Código Fuente}
+\section{Ejemplo de Codigo Generado}
 
 \begin{lstlisting}[style=c, caption=Programa factorial]
 int factorial(int n) {
@@ -928,71 +926,63 @@ int main() {
 }
 \end{lstlisting}
 
-\subsection{Código Ensamblador Generado}
+\subsection{Codigo Ensamblador Generado}
 
-\begin{lstlisting}[style=asm, caption=Código x86-64 generado]
-.intel_syntax noprefix
+\begin{lstlisting}[style=asm, caption=Codigo x86-64 generado (Sintaxis AT\&T)]
 .text
 .global main
 
 factorial:
-    push rbp
-    mov rbp, rsp
-    mov rax, [rbp + 16]      ; Cargar parámetro n
-    push rax
-    mov rax, 1
-    mov rbx, rax
-    pop rax
-    cmp rax, rbx
-    setle al
-    movzx rax, al
-    test rax, rax
-    jz .L1                    ; Si n > 1, saltar
-    mov rax, 1                ; return 1
-    mov rsp, rbp
-    pop rbp
-    ret
+    pushq %rbp
+    movq %rsp, %rbp
+    movq 16(%rbp), %rax      ; Cargar parametro n
+    pushq %rax
+    movq $1, %rax
+    movq %rax, %rbx
+    popq %rax
+    cmpq %rbx, %rax
+    setle %al
+    movzbq %al, %rax
+    testq %rax, %rax
+    jz .L0
+    movq $1, %rax
+    jmp .L1
+.L0:
+    movq 16(%rbp), %rax
+    pushq %rax
+    movq 16(%rbp), %rax
+    pushq %rax
+    movq $1, %rax
+    movq %rax, %rbx
+    popq %rax
+    subq %rbx, %rax
+    pushq %rax
+    call factorial
+    addq $8, %rsp           ; Limpiar argumento
+    movq %rax, %rbx
+    popq %rax
+    imulq %rbx, %rax
 .L1:
-    mov rax, [rbp + 16]       ; Cargar n
-    push rax
-    sub rsp, 8                ; Alinear stack
-    mov rax, [rbp + 16]
-    push rax
-    mov rax, 1
-    mov rbx, rax
-    pop rax
-    sub rax, rbx              ; n - 1
-    push rax
-    call factorial            ; Llamada recursiva
-    add rsp, 16
-    mov rbx, rax              ; resultado en rbx
-    pop rax                   ; n en rax
-    imul rax, rbx             ; n * factorial(n-1)
-    mov rsp, rbp
-    pop rbp
+    leave
     ret
 
 main:
-    push rbp
-    mov rbp, rsp
-    sub rsp, 16
-    sub rsp, 8
-    mov rax, 5
-    push rax
+    pushq %rbp
+    movq %rsp, %rbp
+    subq $16, %rsp
+    movq $5, %rax
+    pushq %rax
     call factorial
-    add rsp, 16
-    mov [rbp - 8], rax        ; result = factorial(5)
-    mov rax, [rbp - 8]
-    push rax
-    lea rax, [.STR0]
-    push rax
-    pop rdi
-    pop rsi
-    xor eax, eax
-    call printf
-    mov rax, 0
-    mov rsp, rbp
-    pop rbp
+    addq $8, %rsp
+    movq %rax, -8(%rbp)
+    movq -8(%rbp), %rax
+    movq %rax, %rsi
+    leaq .STR0(%rip), %rax
+    movq %rax, %rdi
+    movl $0, %eax
+    call printf@PLT
+    movq $0, %rax
+    leave
     ret
 
 .data
@@ -1002,7 +992,7 @@ int_fmt: .asciz "%ld\n"
 
 \section{Instrucciones de Uso}
 
-\subsection{Compilación del Compilador}
+\subsection{Compilacion del Compilador}
 
 \begin{lstlisting}[language=bash]
 # Compilar el compilador
@@ -1012,7 +1002,7 @@ make
 make clean
 \end{lstlisting}
 
-\subsection{Ejecución}
+\subsection{Ejecucion}
 
 \textbf{Linux x86-64:}
 \begin{lstlisting}[language=bash]
@@ -1035,17 +1025,17 @@ gcc -no-pie output.s -o program
 
 \section{Conclusiones}
 
-Se logró implementar exitosamente un compilador funcional que traduce un subconjunto significativo de C a código ensamblador x86-64. Los principales logros incluyen:
+Se logro implementar exitosamente un compilador funcional que traduce un subconjunto significativo de C a codigo ensamblador x86-64. Los principales logros incluyen:
 
 \begin{itemize}
-    \item Implementación completa de las cuatro fases del compilador
-    \item Soporte para múltiples tipos de datos con promoción automática
+    \item Implementacion completa de las cuatro fases del compilador
+    \item Soporte para multiples tipos de datos con promocion automatica
     \item Manejo correcto de funciones recursivas y estructuras de control
-    \item Optimizaciones efectivas que reducen el código generado
-    \item Extensiones útiles como expresiones ternarias y typedef
+    \item Optimizaciones efectivas que reducen el codigo generado
+    \item Extensiones utiles como expresiones ternarias y typedef
 \end{itemize}
 
-El proyecto demuestra la aplicación práctica de los conceptos teóricos de compiladores, incluyendo análisis léxico, parsing recursivo descendente, verificación de tipos, generación de código y optimizaciones.
+El proyecto demuestra la aplicacion practica de los conceptos teoricos de compiladores, incluyendo analisis lexico, parsing recursivo descendente, verificacion de tipos, generacion de codigo y optimizaciones.
 
 \subsection{Trabajo Futuro}
 
@@ -1053,10 +1043,10 @@ Posibles mejoras para versiones futuras:
 
 \begin{itemize}
     \item Soporte para estructuras (struct) y uniones
-    \item Implementación de punteros y memoria dinámica
+    \item Implementacion de punteros y memoria dinamica
     \item Optimizaciones adicionales (register allocation, peephole)
-    \item Soporte para más operadores de C
-    \item Generación de código para otras arquitecturas
+    \item Soporte para mas operadores de C
+    \item Generacion de codigo para otras arquitecturas
 \end{itemize}
 
 \section{Referencias}

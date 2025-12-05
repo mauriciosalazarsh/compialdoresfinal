@@ -17,24 +17,40 @@ void CodeGenerator::emit(const std::string& instruction) {
     code << "    " << instruction << "\n";
 }
 
+std::string CodeGenerator::reg(const std::string& r) {
+    return "%" + r;
+}
+
+std::string CodeGenerator::imm(const std::string& val) {
+    return "$" + val;
+}
+
+std::string CodeGenerator::imm(int val) {
+    return "$" + std::to_string(val);
+}
+
+std::string CodeGenerator::mem(const std::string& base, int offset) {
+    if (offset == 0) return "(" + reg(base) + ")";
+    return std::to_string(offset) + "(" + reg(base) + ")";
+}
+
 void CodeGenerator::emitLabel(const std::string& label) {
     code << label << ":\n";
 }
 
 void CodeGenerator::generatePrologue(const std::string& funcName, int stackSize) {
     emitLabel(funcName);
-    emit("push rbp");
-    emit("mov rbp, rsp");
+    emit("pushq %rbp");
+    emit("movq %rsp, %rbp");
     // alinear a 16 bytes
     int alignedSize = ((stackSize + 15) & ~15);
     if (alignedSize > 0) {
-        emit("sub rsp, " + std::to_string(alignedSize));
+        emit("subq " + imm(alignedSize) + ", %rsp");
     }
 }
 
 void CodeGenerator::generateEpilogue() {
-    emit("mov rsp, rbp");
-    emit("pop rbp");
+    emit("leave");
     emit("ret");
 }
 
@@ -43,13 +59,13 @@ void CodeGenerator::loadVariable(const std::string& varName, DataType type) {
     if (!sym) return;
 
     if (sym->isParameter) {
-        emit("mov rax, [rbp + " + std::to_string(sym->offset) + "]");
+        emit("movq " + std::to_string(sym->offset) + "(%rbp), %rax");
     } else {
-        emit("mov rax, [rbp - " + std::to_string(-sym->offset) + "]");
+        emit("movq " + std::to_string(sym->offset) + "(%rbp), %rax");
     }
 
     if (type == DataType::FLOAT) {
-        emit("movq xmm0, rax");
+        emit("movq %rax, %xmm0");
     }
 }
 
@@ -58,13 +74,13 @@ void CodeGenerator::storeVariable(const std::string& varName, DataType type) {
     if (!sym) return;
 
     if (type == DataType::FLOAT) {
-        emit("movq rax, xmm0");
+        emit("movq %xmm0, %rax");
     }
 
     if (sym->isParameter) {
-        emit("mov [rbp + " + std::to_string(sym->offset) + "], rax");
+        emit("movq %rax, " + std::to_string(sym->offset) + "(%rbp)");
     } else {
-        emit("mov [rbp - " + std::to_string(-sym->offset) + "], rax");
+        emit("movq %rax, " + std::to_string(sym->offset) + "(%rbp)");
     }
 }
 
@@ -74,20 +90,20 @@ void CodeGenerator::convertType(DataType from, DataType to) {
     // int/long/uint -> float
     if ((from == DataType::INT || from == DataType::LONG || from == DataType::UINT) &&
         to == DataType::FLOAT) {
-        emit("cvtsi2sd xmm0, rax");
+        emit("cvtsi2sdq %rax, %xmm0");
     }
     // float -> int/long
     else if (from == DataType::FLOAT &&
              (to == DataType::INT || to == DataType::LONG || to == DataType::UINT)) {
-        emit("cvttsd2si rax, xmm0");
+        emit("cvttsd2siq %xmm0, %rax");
     }
     // int -> long
     else if (from == DataType::INT && to == DataType::LONG) {
-        emit("cdqe");
+        emit("cltq");
     }
     // uint -> long
     else if (from == DataType::UINT && to == DataType::LONG) {
-        emit("mov eax, eax");
+        emit("movl %eax, %eax");
     }
 }
 
@@ -96,7 +112,7 @@ void CodeGenerator::computeArrayOffset(const std::vector<std::unique_ptr<Expr>>&
     if (indices.empty()) return;
 
     indices[0]->accept(this);
-    emit("push rax");
+    emit("pushq %rax");
 
     for (size_t i = 1; i < indices.size(); ++i) {
         int dimProduct = 1;
@@ -104,18 +120,18 @@ void CodeGenerator::computeArrayOffset(const std::vector<std::unique_ptr<Expr>>&
             dimProduct *= dimensions[j];
         }
 
-        emit("pop rax"); 
-        emit("imul rax, " + std::to_string(dimProduct));
-        emit("push rax");
+        emit("popq %rax");
+        emit("imulq " + imm(dimProduct) + ", %rax");
+        emit("pushq %rax");
 
         indices[i]->accept(this);
-        emit("pop rbx");
-        emit("add rax, rbx");
-        emit("push rax");
+        emit("popq %rbx");
+        emit("addq %rbx, %rax");
+        emit("pushq %rax");
     }
 
-    emit("pop rax");
-    emit("imul rax, 8");
+    emit("popq %rax");
+    emit("imulq " + imm(8) + ", %rax");
 }
 
 void CodeGenerator::visit(BinaryExpr* node) {
@@ -135,76 +151,78 @@ void CodeGenerator::visit(BinaryExpr* node) {
             else if (node->op == "%" && rightVal != 0) result = leftVal % rightVal;
             else goto no_fold;
 
-            emit("mov rax, " + std::to_string(result));
+            emit("movq " + imm(std::to_string(result)) + ", %rax");
             return;
         }
     }
 
 no_fold:
     node->left->accept(this);
-    emit("push rax");
+    emit("pushq %rax");
 
     node->right->accept(this);
-    emit("mov rbx, rax");
-    emit("pop rax");
+    emit("movq %rax, %rbx");
+    emit("popq %rax");
 
     if (node->exprType == DataType::FLOAT) {
-        emit("movq xmm0, rax");
-        emit("movq xmm1, rbx");
+        emit("movq %rax, %xmm0");
+        emit("movq %rbx, %xmm1");
 
-        if (node->op == "+") emit("addsd xmm0, xmm1");
-        else if (node->op == "-") emit("subsd xmm0, xmm1");
-        else if (node->op == "*") emit("mulsd xmm0, xmm1");
-        else if (node->op == "/") emit("divsd xmm0, xmm1");
+        if (node->op == "+") emit("addsd %xmm1, %xmm0");
+        else if (node->op == "-") emit("subsd %xmm1, %xmm0");
+        else if (node->op == "*") emit("mulsd %xmm1, %xmm0");
+        else if (node->op == "/") emit("divsd %xmm1, %xmm0");
 
-        emit("movq rax, xmm0");
+        emit("movq %xmm0, %rax");
     } else {
- 
+
         if (node->op == "+") {
-            emit("add rax, rbx");
+            emit("addq %rbx, %rax");
         } else if (node->op == "-") {
-            emit("sub rax, rbx");
+            emit("subq %rbx, %rax");
         } else if (node->op == "*") {
-            emit("imul rax, rbx");
+            emit("imulq %rbx, %rax");
         } else if (node->op == "/") {
-            emit("cqo");
-            emit("idiv rbx");
+            emit("cqto");
+            emit("idivq %rbx");
         } else if (node->op == "%") {
-            emit("cqo");
-            emit("idiv rbx");
-            emit("mov rax, rdx");
+            emit("cqto");
+            emit("idivq %rbx");
+            emit("movq %rdx, %rax");
         }
- 
-        else if (node->op == "<") {
-            emit("cmp rax, rbx");
-            emit("setl al");
-            emit("movzx rax, al");
+
+        bool isUnsigned = (node->left->exprType == DataType::UINT);
+
+        if (node->op == "<") {
+            emit("cmpq %rbx, %rax");
+            emit(isUnsigned ? "setb %al" : "setl %al");
+            emit("movzbq %al, %rax");
         } else if (node->op == "<=") {
-            emit("cmp rax, rbx");
-            emit("setle al");
-            emit("movzx rax, al");
+            emit("cmpq %rbx, %rax");
+            emit(isUnsigned ? "setbe %al" : "setle %al");
+            emit("movzbq %al, %rax");
         } else if (node->op == ">") {
-            emit("cmp rax, rbx");
-            emit("setg al");
-            emit("movzx rax, al");
+            emit("cmpq %rbx, %rax");
+            emit(isUnsigned ? "seta %al" : "setg %al");
+            emit("movzbq %al, %rax");
         } else if (node->op == ">=") {
-            emit("cmp rax, rbx");
-            emit("setge al");
-            emit("movzx rax, al");
+            emit("cmpq %rbx, %rax");
+            emit(isUnsigned ? "setae %al" : "setge %al");
+            emit("movzbq %al, %rax");
         } else if (node->op == "==") {
-            emit("cmp rax, rbx");
-            emit("sete al");
-            emit("movzx rax, al");
+            emit("cmpq %rbx, %rax");
+            emit("sete %al");
+            emit("movzbq %al, %rax");
         } else if (node->op == "!=") {
-            emit("cmp rax, rbx");
-            emit("setne al");
-            emit("movzx rax, al");
+            emit("cmpq %rbx, %rax");
+            emit("setne %al");
+            emit("movzbq %al, %rax");
         }
         // logicas
         else if (node->op == "&&") {
-            emit("and rax, rbx");
+            emit("andq %rbx, %rax");
         } else if (node->op == "||") {
-            emit("or rax, rbx");
+            emit("orq %rbx, %rax");
         }
     }
 }
@@ -214,17 +232,17 @@ void CodeGenerator::visit(UnaryExpr* node) {
 
     if (node->op == "-") {
         if (node->exprType == DataType::FLOAT) {
-            emit("movq xmm0, rax");
-            emit("xorpd xmm1, xmm1");
-            emit("subsd xmm1, xmm0");
-            emit("movq rax, xmm1");
+            emit("movq %rax, %xmm0");
+            emit("xorpd %xmm1, %xmm1");
+            emit("subsd %xmm0, %xmm1");
+            emit("movq %xmm1, %rax");
         } else {
-            emit("neg rax");
+            emit("negq %rax");
         }
     } else if (node->op == "!") {
-        emit("test rax, rax");
-        emit("setz al");
-        emit("movzx rax, al");
+        emit("testq %rax, %rax");
+        emit("setz %al");
+        emit("movzbq %al, %rax");
     }
 }
 
@@ -233,7 +251,7 @@ void CodeGenerator::visit(TernaryExpr* node) {
     std::string endLabel = newLabel();
 
     node->condition->accept(this);
-    emit("test rax, rax");
+    emit("testq %rax, %rax");
     emit("jz " + falseLabel);
 
     node->trueExpr->accept(this);
@@ -264,15 +282,15 @@ void CodeGenerator::visit(LiteralExpr* node) {
     if (node->exprType == DataType::FLOAT) {
         std::string label = newStringLabel();
         dataSection << label << ": .double " << node->value << "\n";
-        emit("movsd xmm0, [rip + " + label + "]");
-        emit("movq rax, xmm0");
+        emit("movsd " + label + "(%rip), %xmm0");
+        emit("movq %xmm0, %rax");
     } else if (node->exprType == DataType::STRING) {
         std::string label = newStringLabel();
         std::string escaped = escapeString(node->value);
         dataSection << label << ": .asciz \"" << escaped << "\"\n";
-        emit("lea rax, [rip + " + label + "]");
+        emit("leaq " + label + "(%rip), %rax");
     } else {
-        emit("mov rax, " + node->value);
+        emit("movq " + imm(node->value) + ", %rax");
     }
 }
 
@@ -293,13 +311,13 @@ void CodeGenerator::visit(ArrayAccessExpr* node) {
     computeArrayOffset(node->indices, sym->arrayDimensions);
 
     if (sym->isParameter) {
-        emit("mov rbx, [rbp + " + std::to_string(sym->offset) + "]");
+        emit("movq " + std::to_string(sym->offset) + "(%rbp), %rbx");
     } else {
-        emit("lea rbx, [rbp - " + std::to_string(-sym->offset) + "]");
+        emit("leaq " + std::to_string(sym->offset) + "(%rbp), %rbx");
     }
 
-    emit("add rbx, rax");
-    emit("mov rax, [rbx]");
+    emit("addq %rax, %rbx");
+    emit("movq (%rbx), %rax");
 }
 
 void CodeGenerator::visit(CallExpr* node) {
@@ -307,12 +325,12 @@ void CodeGenerator::visit(CallExpr* node) {
     if (node->name == "println") {
         if (!node->args.empty()) {
             node->args[0]->accept(this);
-            emit("mov rsi, rax");
-            emit("lea rdi, [rip + int_fmt]");
-            emit("xor eax, eax");
-            emit("sub rsp, 8");
-            emit("call printf");
-            emit("add rsp, 8");
+            emit("movq %rax, %rsi");
+            emit("leaq int_fmt(%rip), %rdi");
+            emit("movl $0, %eax");
+            emit("subq $8, %rsp");
+            emit("call printf@PLT");
+            emit("addq $8, %rsp");
         }
         return;
     }
@@ -332,55 +350,52 @@ void CodeGenerator::visit(CallExpr* node) {
 
         if (hasFloatArg && numArgs >= 2) {
             node->args[0]->accept(this);
-            emit("mov rdi, rax");
+            emit("movq %rax, %rdi");
 
             node->args[1]->accept(this);
-            emit("movq xmm0, rax");
+            emit("movq %rax, %xmm0");
 
-            emit("mov eax, 1");
-            emit("call printf");
+            emit("movl $1, %eax");
+            emit("call printf@PLT");
             return;
         }
 
         for (int i = numArgs - 1; i >= 0; --i) {
             node->args[i]->accept(this);
-            emit("push rax");
+            if (i < (int)argRegs.size()) {
+                emit("movq %rax, %" + argRegs[i]);
+            } else {
+                emit("pushq %rax"); // Fallback for >6 args (unlikely in examples but safe)
+            }
         }
 
-        for (int i = 0; i < numArgs && i < (int)argRegs.size(); ++i) {
-            emit("pop " + argRegs[i]);
-        }
-
-        emit("xor eax, eax");
-        emit("call printf");
+        emit("movl $0, %eax");
+        emit("call printf@PLT");
         return;
     }
 
-    // funciones definidas por usuario - usar ABI x86-64
     std::vector<std::string> argRegsUser = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
     int numArgs = node->args.size();
 
-    // Guardar argumentos en orden inverso en el stack temporalmente
     for (int i = numArgs - 1; i >= 0; --i) {
         node->args[i]->accept(this);
-        emit("push rax");
+        if (i < (int)argRegsUser.size()) {
+            emit("movq %rax, %" + argRegsUser[i]);
+        } else {
+            emit("pushq %rax");
+        }
     }
 
-    // Mover argumentos del stack a los registros correspondientes
-    for (int i = 0; i < numArgs && i < (int)argRegsUser.size(); ++i) {
-        emit("pop " + argRegsUser[i]);
-    }
-
-    // Alinear stack a 16 bytes antes de call
+    // alinear stack a 16 bytes antes de call
     bool needAlignment = (numArgs <= 6) && (numArgs % 2 == 1);
     if (needAlignment) {
-        emit("sub rsp, 8");
+        emit("subq $8, %rsp");
     }
 
     emit("call " + node->name);
 
     if (needAlignment) {
-        emit("add rsp, 8");
+        emit("addq $8, %rsp");
     }
 }
 
@@ -415,7 +430,7 @@ void CodeGenerator::visit(VarDeclStmt* node) {
 
 void CodeGenerator::visit(AssignStmt* node) {
     node->value->accept(this);
-    emit("push rax");
+    emit("pushq %rax");
 
     if (auto arrayAccess = dynamic_cast<ArrayAccessExpr*>(node->target.get())) {
         auto idExpr = dynamic_cast<IdentifierExpr*>(arrayAccess->array.get());
@@ -425,18 +440,18 @@ void CodeGenerator::visit(AssignStmt* node) {
                 computeArrayOffset(arrayAccess->indices, sym->arrayDimensions);
 
                 if (sym->isParameter) {
-                    emit("mov rbx, [rbp + " + std::to_string(sym->offset) + "]");
+                    emit("movq " + std::to_string(sym->offset) + "(%rbp), %rbx");
                 } else {
-                    emit("lea rbx, [rbp - " + std::to_string(-sym->offset) + "]");
+                    emit("leaq " + std::to_string(sym->offset) + "(%rbp), %rbx");
                 }
 
-                emit("add rbx, rax");
-                emit("pop rax");
-                emit("mov [rbx], rax");
+                emit("addq %rax, %rbx");
+                emit("popq %rax");
+                emit("movq %rax, (%rbx)");
             }
         }
     } else if (auto id = dynamic_cast<IdentifierExpr*>(node->target.get())) {
-        emit("pop rax");
+        emit("popq %rax");
         Symbol* sym = symbolTable.lookup(id->name);
         if (sym) {
             storeVariable(id->name, sym->type);
@@ -449,11 +464,32 @@ void CodeGenerator::visit(ExprStmt* node) {
 }
 
 void CodeGenerator::visit(IfStmt* node) {
+    if (enableDeadCodeElimination) {
+        if (auto literal = dynamic_cast<LiteralExpr*>(node->condition.get())) {
+            long long val = 0;
+            try {
+                val = std::stoll(literal->value);
+            } catch (...) {
+                val = 1; 
+            }
+
+            if (val == 0) {
+                if (node->elseBranch) {
+                    node->elseBranch->accept(this);
+                }
+                return;
+            } else {
+                node->thenBranch->accept(this);
+                return;
+            }
+        }
+    }
+
     std::string elseLabel = newLabel();
     std::string endLabel = newLabel();
 
     node->condition->accept(this);
-    emit("test rax, rax");
+    emit("testq %rax, %rax");
 
     if (node->elseBranch) {
         emit("jz " + elseLabel);
@@ -475,7 +511,7 @@ void CodeGenerator::visit(WhileStmt* node) {
 
     emitLabel(startLabel);
     node->condition->accept(this);
-    emit("test rax, rax");
+    emit("testq %rax, %rax");
     emit("jz " + endLabel);
 
     node->body->accept(this);
@@ -497,16 +533,16 @@ void CodeGenerator::visit(ForStmt* node) {
     emitLabel(startLabel);
 
     loadVariable(node->varName, DataType::INT);
-    emit("push rax");
+    emit("pushq %rax");
     node->end->accept(this);
-    emit("pop rbx");
-    emit("cmp rbx, rax");
+    emit("popq %rbx");
+    emit("cmpq %rax, %rbx");
     emit("jge " + endLabel);
 
     node->body->accept(this);
 
     loadVariable(node->varName, DataType::INT);
-    emit("inc rax");
+    emit("incq %rax");
     storeVariable(node->varName, DataType::INT);
 
     emit("jmp " + startLabel);
@@ -601,7 +637,7 @@ void CodeGenerator::visit(FunctionDecl* node) {
     for (size_t i = 0; i < node->params.size() && i < paramRegs.size(); ++i) {
         Symbol* sym = symbolTable.lookup(node->params[i].name);
         if (sym) {
-            emit("mov [rbp - " + std::to_string(-sym->offset) + "], " + paramRegs[i]);
+            emit("movq %" + paramRegs[i] + ", " + std::to_string(sym->offset) + "(%rbp)");
         }
     }
 
@@ -615,7 +651,6 @@ void CodeGenerator::visit(FunctionDecl* node) {
 }
 
 void CodeGenerator::visit(Program* node) {
-    code << ".intel_syntax noprefix\n";
     code << ".text\n";
     code << ".global main\n\n";
 
@@ -625,19 +660,19 @@ void CodeGenerator::visit(Program* node) {
     }
 
     code << "print_int:\n";
-    code << "    push rbp\n";
-    code << "    mov rbp, rsp\n";
-    code << "    mov rsi, rdi\n";
-    code << "    lea rdi, [rip + int_fmt]\n";
-    code << "    xor rax, rax\n";
-    code << "    call printf\n";
-    code << "    mov rsp, rbp\n";
-    code << "    pop rbp\n";
+    code << "    pushq %rbp\n";
+    code << "    movq %rsp, %rbp\n";
+    code << "    movq %rdi, %rsi\n";
+    code << "    leaq int_fmt(%rip), %rdi\n";
+    code << "    movl $0, %eax\n";
+    code << "    call printf@PLT\n";
+    code << "    leave\n";
     code << "    ret\n\n";
 
     code << ".data\n";
     code << "int_fmt: .asciz \"%ld\\n\"\n";
     code << dataSection.str();
+    code << ".section .note.GNU-stack,\"\",@progbits\n";
 }
 
 std::string CodeGenerator::getCode() const {
