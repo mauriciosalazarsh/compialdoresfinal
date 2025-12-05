@@ -1,5 +1,5 @@
 int main() {
-    int x = 2 + 3;
+    int x = 3 + 3;
     int y = 10 * 5;
     int z = 100 / 4;
 
