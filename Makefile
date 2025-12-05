@@ -2,7 +2,7 @@ CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -g -Iinclude
 LDFLAGS =
 
-# Directories
+# Directorios
 SRC_DIR = src
 INCLUDE_DIR = include
 BUILD_DIR = build
