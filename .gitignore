@@ -8,6 +8,12 @@
 *.out
 *.toc
 *.synctex.gz
+*.fdb_latexmk
+*.fls
+
+# Ignorar presentacion y tests sueltos
+presentacion.md
+test_sum.kt
 
 # Ignorar scripts shell
 *.sh
